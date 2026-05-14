@@ -11,7 +11,7 @@ A little collection of browser games for early learners (age 6 and up). All game
 | 🍪 Cookie Catcher | Reflexes, decision making | [cookie-game.html](cookie-game.html) |
 | 📖 Storybook Adventure | Early reading, sight words | [reading-game.html](reading-game.html) |
 | ➕ Cookie Math | Addition, subtraction within 20, missing addend | [math-game.html](math-game.html) |
-| 🐻 Bear's Adventure | Platformer — jumping, timing | [bear-adventure.html](bear-adventure.html) |
+| 🍄 Super Plumber | Platformer — jumping, timing | [mario-game.html](mario-game.html) |
 | 👩‍🍳 Cookie Bakery | Sequencing, following multi-step instructions | [baking-game.html](baking-game.html) |
 
 ## Tech
