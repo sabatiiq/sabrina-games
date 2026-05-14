@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bear's Game Land! 🐻🍪</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    min-height: 100%;
+    font-family: 'Comic Sans MS', 'Marker Felt', cursive, sans-serif;
+    background: linear-gradient(135deg, #ffd3a5 0%, #fd9853 35%, #ffafbd 70%, #a8edea 100%);
+    user-select: none;
+  }
+  body { padding: 24px 16px 60px; min-height: 100vh; }
+  #app { max-width: 1100px; margin: 0 auto; }
+
+  header {
+    text-align: center;
+    margin-bottom: 30px;
+  }
+  h1 {
+    font-size: clamp(40px, 9vw, 80px);
+    color: #fff8e1;
+    text-shadow: 4px 4px 0 #d84315, 8px 8px 0 rgba(0,0,0,0.2);
+    line-height: 1.1;
+    margin-bottom: 10px;
+  }
+  .subtitle {
+    font-size: clamp(18px, 3.5vw, 28px);
+    color: #4e342e;
+    background: rgba(255,255,255,0.85);
+    border: 4px solid #ff7043;
+    border-radius: 30px;
+    padding: 10px 24px;
+    display: inline-block;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.12);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 20px;
+  }
+
+  .card {
+    background: #fffaf0;
+    border-radius: 24px;
+    padding: 22px 18px;
+    text-decoration: none;
+    color: inherit;
+    text-align: center;
+    box-shadow:
+      0 0 0 5px #fff,
+      0 0 0 10px var(--border, #d84315),
+      0 14px 30px rgba(0,0,0,0.25);
+    transition: transform 0.15s, box-shadow 0.15s;
+    cursor: pointer;
+    display: block;
+  }
+  .card:hover {
+    transform: translateY(-6px) rotate(-1deg);
+    box-shadow:
+      0 0 0 5px #fff,
+      0 0 0 10px var(--border, #d84315),
+      0 20px 40px rgba(0,0,0,0.35);
+  }
+  .card:active { transform: translateY(2px); }
+
+  .card .emoji {
+    font-size: clamp(70px, 12vw, 100px);
+    line-height: 1;
+    margin-bottom: 10px;
+    display: block;
+  }
+  .card h2 {
+    font-size: clamp(22px, 4vw, 30px);
+    color: var(--border, #d84315);
+    margin-bottom: 8px;
+  }
+  .card p {
+    font-size: clamp(15px, 2.6vw, 19px);
+    color: #5d4037;
+    margin-bottom: 12px;
+    min-height: 50px;
+  }
+  .play-btn {
+    display: inline-block;
+    background: #ffeb3b;
+    border: 4px solid #fbc02d;
+    border-radius: 22px;
+    padding: 10px 24px;
+    font-weight: bold;
+    color: #5d4037;
+    font-size: clamp(18px, 3vw, 24px);
+    box-shadow: 0 4px 0 #f57f17;
+  }
+
+  /* Per-card color themes */
+  .card.c1 { --border: #ff7043; }
+  .card.c2 { --border: #ab47bc; }
+  .card.c3 { --border: #5e35b1; }
+  .card.c4 { --border: #43a047; }
+  .card.c5 { --border: #ec407a; }
+
+  footer {
+    text-align: center;
+    margin-top: 40px;
+    color: rgba(255,255,255,0.95);
+    font-size: clamp(14px, 2.5vw, 18px);
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+  }
+  footer .heart { color: #ff5252; }
+
+  /* Floating bear animation */
+  .floater {
+    position: fixed;
+    pointer-events: none;
+    font-size: 40px;
+    opacity: 0.35;
+    animation: floatUp 12s linear infinite;
+    z-index: -1;
+  }
+  @keyframes floatUp {
+    0%   { transform: translateY(110vh) rotate(0); }
+    100% { transform: translateY(-15vh) rotate(360deg); }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>🐻 Bear's Game Land! 🍪</h1>
+    <div class="subtitle">Pick a game and let's play!</div>
+  </header>
+
+  <div class="grid">
+    <a class="card c1" href="cookie-game.html">
+      <span class="emoji">🍪🧺</span>
+      <h2>Cookie Catcher</h2>
+      <p>Catch the falling cookies in your basket — and dodge the broccoli!</p>
+      <span class="play-btn">Play ▶</span>
+    </a>
+
+    <a class="card c2" href="reading-game.html">
+      <span class="emoji">📖🐻</span>
+      <h2>Storybook Adventure</h2>
+      <p>Read along with Bear! Pick the missing word on each page.</p>
+      <span class="play-btn">Play ▶</span>
+    </a>
+
+    <a class="card c3" href="math-game.html">
+      <span class="emoji">🍪➕</span>
+      <h2>Cookie Math</h2>
+      <p>Add, subtract, and find missing numbers with Bear's cookies!</p>
+      <span class="play-btn">Play ▶</span>
+    </a>
+
+    <a class="card c4" href="bear-adventure.html">
+      <span class="emoji">🐻🚩</span>
+      <h2>Bear's Adventure</h2>
+      <p>Jump, run, and grab cookies! Reach the flag to win.</p>
+      <span class="play-btn">Play ▶</span>
+    </a>
+
+    <a class="card c5" href="baking-game.html">
+      <span class="emoji">👩‍🍳🍪</span>
+      <h2>Cookie Bakery</h2>
+      <p>Mix, shape, bake, and decorate yummy cookies for Bear!</p>
+      <span class="play-btn">Play ▶</span>
+    </a>
+  </div>
+
+  <footer>
+    Made with <span class="heart">❤</span> for super-readers and cookie-bakers everywhere.
+  </footer>
+</div>
+
+<script>
+  // Floating emoji decorations
+  const emojis = ['🍪','🐻','⭐','🍩','🧁','🎂','📖','🚩'];
+  for (let i = 0; i < 8; i++) {
+    const e = document.createElement('div');
+    e.className = 'floater';
+    e.textContent = emojis[i % emojis.length];
+    e.style.left = (Math.random() * 100) + 'vw';
+    e.style.animationDelay = (Math.random() * 12) + 's';
+    e.style.animationDuration = (10 + Math.random() * 8) + 's';
+    document.body.appendChild(e);
+  }
+</script>
+</body>
+</html>

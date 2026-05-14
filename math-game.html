@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Bear's Cookie Math!</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    min-height: 100%;
+    font-family: 'Comic Sans MS', 'Marker Felt', cursive, sans-serif;
+    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+    user-select: none;
+    overflow-x: hidden;
+  }
+  body { padding: 20px; min-height: 100vh; }
+  #app { max-width: 900px; margin: 0 auto; }
+
+  #hud {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    padding: 0 10px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .badge {
+    background: rgba(255,255,255,0.92);
+    border: 4px solid #ec407a;
+    border-radius: 30px;
+    padding: 8px 20px;
+    font-size: clamp(18px, 3vw, 26px);
+    font-weight: bold;
+    color: #4a148c;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.1);
+  }
+
+  .card {
+    background: #fffdf6;
+    border-radius: 28px;
+    box-shadow:
+      0 0 0 6px #fff,
+      0 0 0 12px #ab47bc,
+      0 20px 40px rgba(0,0,0,0.25);
+    padding: 30px 24px;
+    text-align: center;
+    min-height: 480px;
+    position: relative;
+  }
+
+  .bear {
+    font-size: clamp(60px, 12vw, 100px);
+    margin-bottom: 6px;
+    display: inline-block;
+    animation: wiggle 2s ease-in-out infinite;
+  }
+  @keyframes wiggle {
+    0%, 100% { transform: rotate(-3deg); }
+    50%      { transform: rotate(3deg); }
+  }
+
+  .prompt {
+    font-size: clamp(22px, 4.5vw, 32px);
+    color: #4a148c;
+    font-weight: bold;
+    margin-bottom: 14px;
+  }
+
+  .visual {
+    background: linear-gradient(180deg, #fff9c4 0%, #ffe0b2 100%);
+    border: 5px dashed #ff9800;
+    border-radius: 20px;
+    padding: 20px 16px;
+    margin-bottom: 18px;
+    font-size: clamp(36px, 7vw, 56px);
+    line-height: 1.3;
+    min-height: 100px;
+    word-wrap: break-word;
+  }
+  .visual .group {
+    display: inline-block;
+    margin: 0 6px;
+  }
+  .visual .op {
+    color: #d81b60;
+    font-weight: bold;
+    margin: 0 8px;
+  }
+  .visual .crossed {
+    position: relative;
+    display: inline-block;
+    opacity: 0.55;
+  }
+  .visual .crossed::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0;
+    top: 50%;
+    height: 6px;
+    background: #d32f2f;
+    transform: rotate(-15deg);
+    border-radius: 4px;
+  }
+
+  .equation {
+    font-size: clamp(40px, 8vw, 64px);
+    font-weight: bold;
+    color: #4527a0;
+    margin-bottom: 20px;
+    letter-spacing: 4px;
+  }
+  .equation .qmark {
+    color: #d81b60;
+    background: #fff3e0;
+    border: 4px solid #d81b60;
+    border-radius: 14px;
+    padding: 0 18px;
+    display: inline-block;
+    animation: blink 1.2s infinite;
+  }
+  @keyframes blink {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.1); }
+  }
+
+  .choices {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+  .choice {
+    font-family: inherit;
+    font-size: clamp(36px, 7vw, 52px);
+    font-weight: bold;
+    color: #4a148c;
+    background: #e1bee7;
+    border: 5px solid #8e24aa;
+    border-radius: 22px;
+    padding: 18px 10px;
+    cursor: pointer;
+    box-shadow: 0 6px 0 #6a1b9a;
+    transition: transform 0.1s;
+  }
+  .choice:hover  { transform: scale(1.05); }
+  .choice:active { transform: translateY(4px); box-shadow: 0 2px 0 #6a1b9a; }
+  .choice.right  { background: #c8e6c9; border-color: #4caf50; box-shadow: 0 6px 0 #2e7d32; animation: shake 0.4s; }
+  .choice.wrong  { background: #ffcdd2; border-color: #e53935; box-shadow: 0 6px 0 #c62828; animation: nope 0.4s; }
+  @keyframes shake {
+    0%, 100% { transform: rotate(0); }
+    25%      { transform: rotate(-5deg) scale(1.1); }
+    75%      { transform: rotate(5deg)  scale(1.1); }
+  }
+  @keyframes nope {
+    0%, 100% { transform: translateX(0); }
+    25%      { transform: translateX(-8px); }
+    75%      { transform: translateX(8px); }
+  }
+
+  .controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .btn {
+    font-family: inherit;
+    font-size: clamp(18px, 3.5vw, 26px);
+    font-weight: bold;
+    border-radius: 24px;
+    padding: 12px 24px;
+    cursor: pointer;
+    border: 4px solid;
+    box-shadow: 0 5px 0 rgba(0,0,0,0.2);
+    transition: transform 0.1s;
+  }
+  .btn:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,0.2); }
+  .btn.listen { background: #bbdefb; border-color: #1976d2; color: #0d47a1; }
+  .btn.next   { background: #ffeb3b; border-color: #fbc02d; color: #5d4037; }
+  .btn.next[disabled] { opacity: 0.4; cursor: not-allowed; }
+
+  .feedback {
+    font-size: clamp(22px, 4vw, 30px);
+    font-weight: bold;
+    min-height: 40px;
+    margin-bottom: 12px;
+    color: #2e7d32;
+  }
+
+  /* End screen */
+  #endScreen {
+    display: none;
+    text-align: center;
+    padding: 30px 10px;
+  }
+  #endScreen.show { display: block; }
+  #endScreen h1 {
+    font-size: clamp(38px, 8vw, 64px);
+    color: #6a1b9a;
+    text-shadow: 3px 3px 0 #fff, 6px 6px 0 rgba(0,0,0,0.1);
+    margin-bottom: 14px;
+  }
+  .star-row {
+    font-size: clamp(36px, 7vw, 56px);
+    margin: 14px 0;
+    letter-spacing: 4px;
+    line-height: 1.4;
+  }
+  .star-row .star {
+    display: inline-block;
+    animation: pop 0.5s backwards;
+  }
+  @keyframes pop {
+    0%   { transform: scale(0) rotate(-180deg); opacity: 0; }
+    100% { transform: scale(1) rotate(0);       opacity: 1; }
+  }
+
+  .confetti {
+    position: fixed;
+    width: 12px; height: 12px;
+    top: -20px;
+    pointer-events: none;
+    z-index: 100;
+    animation: fall 3s linear forwards;
+  }
+  @keyframes fall {
+    to { transform: translateY(110vh) rotate(720deg); }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="hud">
+    <div class="badge">📚 Round <span id="roundNum">1</span> / <span id="roundTotal">10</span></div>
+    <div class="badge">⭐ <span id="stars">0</span></div>
+  </div>
+
+  <div class="card" id="card">
+    <div id="gameArea">
+      <div class="bear" id="bear">🐻</div>
+      <div class="prompt" id="prompt">How many cookies?</div>
+      <div class="visual" id="visual"></div>
+      <div class="equation" id="equation"></div>
+      <div class="feedback" id="feedback"></div>
+      <div class="choices" id="choices"></div>
+      <div class="controls">
+        <button class="btn listen" id="listenBtn">🔊 Read to me</button>
+        <button class="btn next" id="nextBtn" disabled>Next ➡️</button>
+      </div>
+    </div>
+
+    <div id="endScreen">
+      <div style="font-size: clamp(80px, 16vw, 130px);">🐻🎉</div>
+      <h1>Yay! Math Master!</h1>
+      <div class="star-row" id="finalStars"></div>
+      <p style="font-size: clamp(20px,4vw,28px); color:#4a148c; margin: 10px 0 20px;">
+        You got <strong id="finalScore">0</strong> stars!
+      </p>
+      <button class="btn next" id="restartBtn">Play Again 🍪</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const COOKIE = '🍪';
+  const TOTAL_ROUNDS = 10;
+
+  // refs
+  const gameArea  = document.getElementById('gameArea');
+  const endScreen = document.getElementById('endScreen');
+  const roundNumEl= document.getElementById('roundNum');
+  const roundTotEl= document.getElementById('roundTotal');
+  const starsEl   = document.getElementById('stars');
+  const finalStars= document.getElementById('finalStars');
+  const finalScore= document.getElementById('finalScore');
+  const promptEl  = document.getElementById('prompt');
+  const visualEl  = document.getElementById('visual');
+  const equationEl= document.getElementById('equation');
+  const feedbackEl= document.getElementById('feedback');
+  const choicesEl = document.getElementById('choices');
+  const listenBtn = document.getElementById('listenBtn');
+  const nextBtn   = document.getElementById('nextBtn');
+  const restartBtn= document.getElementById('restartBtn');
+
+  roundTotEl.textContent = TOTAL_ROUNDS;
+
+  let round = 0;
+  let stars = 0;
+  let currentProblem = null;
+  let answered = false;
+
+  function speak(text) {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 0.85; u.pitch = 1.15; u.lang = 'en-US';
+    window.speechSynthesis.speak(u);
+  }
+
+  function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+  function cookies(n) {
+    return COOKIE.repeat(n);
+  }
+
+  function makeProblem() {
+    // Harder mix for a kid past basic counting:
+    //  rounds 0-2: addition within 20 (no visual hints)
+    //  rounds 3-4: subtraction within 20
+    //  rounds 5-6: doubles & adding three numbers
+    //  rounds 7-8: missing addend (5 + ? = 12)
+    //  round  9 : bigger subtraction story problem
+    let type;
+    if (round <= 2)      type = 'add';
+    else if (round <= 4) type = 'sub';
+    else if (round === 5) type = 'double';
+    else if (round === 6) type = 'add3';
+    else if (round <= 8) type = 'missing';
+    else                 type = 'subBig';
+
+    if (type === 'add') {
+      // sums between 10 and 20, e.g. 7 + 6
+      const a = randInt(4, 9);
+      const b = randInt(Math.max(2, 10 - a), Math.min(9, 20 - a));
+      return {
+        type,
+        prompt: 'Add them up!',
+        visualHTML: '',
+        equationHTML: `${a} <span class="op">+</span> ${b} <span class="op">=</span> <span class="qmark">?</span>`,
+        answer: a + b,
+        speech: `What is ${a} plus ${b}?`
+      };
+    }
+
+    if (type === 'sub') {
+      // subtraction within 20, result 1..9
+      const a = randInt(11, 18);
+      const b = randInt(3, a - 2);
+      return {
+        type,
+        prompt: 'Subtract!',
+        visualHTML: '',
+        equationHTML: `${a} <span class="op">−</span> ${b} <span class="op">=</span> <span class="qmark">?</span>`,
+        answer: a - b,
+        speech: `What is ${a} minus ${b}?`
+      };
+    }
+
+    if (type === 'double') {
+      const a = randInt(5, 9);
+      return {
+        type,
+        prompt: 'Double it! Same number twice.',
+        visualHTML: '',
+        equationHTML: `${a} <span class="op">+</span> ${a} <span class="op">=</span> <span class="qmark">?</span>`,
+        answer: a + a,
+        speech: `What is ${a} plus ${a}?`
+      };
+    }
+
+    if (type === 'add3') {
+      // three numbers summing to at most 18
+      const a = randInt(2, 5);
+      const b = randInt(2, 5);
+      const c = randInt(2, 6);
+      return {
+        type,
+        prompt: 'Add all three!',
+        visualHTML: '',
+        equationHTML:
+          `${a} <span class="op">+</span> ${b} <span class="op">+</span> ${c} ` +
+          `<span class="op">=</span> <span class="qmark">?</span>`,
+        answer: a + b + c,
+        speech: `What is ${a} plus ${b} plus ${c}?`
+      };
+    }
+
+    if (type === 'missing') {
+      // a + ? = total, total up to 15
+      const a = randInt(3, 8);
+      const missing = randInt(3, 8);
+      const total = a + missing;
+      return {
+        type,
+        prompt: 'Find the missing number!',
+        visualHTML: '',
+        equationHTML:
+          `${a} <span class="op">+</span> <span class="qmark">?</span> ` +
+          `<span class="op">=</span> ${total}`,
+        answer: missing,
+        speech: `${a} plus what number equals ${total}?`
+      };
+    }
+
+    // subBig — subtraction story problem with bigger numbers
+    const a = randInt(13, 20);
+    const b = randInt(4, 9);
+    return {
+      type,
+      prompt: `Bear baked ${a} cookies and ate ${b}. How many are left?`,
+      visualHTML: '',
+      equationHTML: `${a} <span class="op">−</span> ${b} <span class="op">=</span> <span class="qmark">?</span>`,
+      answer: a - b,
+      speech: `Bear baked ${a} cookies and ate ${b}. How many cookies are left?`
+    };
+  }
+
+  function makeChoices(correct) {
+    // 4 choices, distractors close to the answer to make guessing harder
+    const set = new Set([correct]);
+    let tries = 0;
+    while (set.size < 4 && tries < 50) {
+      tries++;
+      const delta = randInt(-3, 3);
+      if (delta === 0) continue;
+      const cand = correct + delta;
+      if (cand >= 0 && cand <= 25) set.add(cand);
+    }
+    // fallback if we couldn't fill (e.g. correct = 0)
+    let n = 0;
+    while (set.size < 4) { if (n !== correct) set.add(n); n++; }
+    return [...set].sort(() => Math.random() - 0.5);
+  }
+
+  function showRound() {
+    if (round >= TOTAL_ROUNDS) return showEnd();
+    answered = false;
+    currentProblem = makeProblem();
+    roundNumEl.textContent = round + 1;
+    promptEl.textContent = currentProblem.prompt;
+    visualEl.innerHTML = currentProblem.visualHTML;
+    equationEl.innerHTML = currentProblem.equationHTML;
+    feedbackEl.textContent = '';
+    nextBtn.disabled = true;
+
+    choicesEl.innerHTML = '';
+    const opts = makeChoices(currentProblem.answer);
+    opts.forEach(n => {
+      const b = document.createElement('button');
+      b.className = 'choice';
+      b.textContent = n;
+      b.addEventListener('click', () => onChoice(b, n));
+      choicesEl.appendChild(b);
+    });
+
+    setTimeout(() => speak(currentProblem.speech), 250);
+  }
+
+  function onChoice(btn, value) {
+    if (answered) return;
+    if (value === currentProblem.answer) {
+      answered = true;
+      btn.classList.add('right');
+      stars++;
+      starsEl.textContent = stars;
+      feedbackEl.style.color = '#2e7d32';
+      feedbackEl.textContent = '🌟 That\'s right! 🌟';
+      nextBtn.disabled = false;
+      choicesEl.querySelectorAll('.choice').forEach(c => c.style.pointerEvents = 'none');
+      burstConfetti();
+      speak(`Yes! The answer is ${value}!`);
+    } else {
+      btn.classList.add('wrong');
+      feedbackEl.style.color = '#d84315';
+      feedbackEl.textContent = '🤔 Try again! Count carefully.';
+      setTimeout(() => btn.classList.remove('wrong'), 600);
+      speak('Try again!');
+    }
+  }
+
+  function showEnd() {
+    gameArea.style.display = 'none';
+    endScreen.classList.add('show');
+    finalScore.textContent = stars;
+    finalStars.innerHTML = '';
+    for (let i = 0; i < stars; i++) {
+      const s = document.createElement('span');
+      s.className = 'star';
+      s.textContent = '⭐';
+      s.style.animationDelay = (i * 0.15) + 's';
+      finalStars.appendChild(s);
+    }
+    for (let k = 0; k < 4; k++) setTimeout(burstConfetti, k * 400);
+    speak(`Amazing! You got ${stars} stars!`);
+  }
+
+  function burstConfetti() {
+    const colors = ['#ff5252','#ffeb3b','#4caf50','#2196f3','#e040fb','#ff9800'];
+    for (let i = 0; i < 30; i++) {
+      const c = document.createElement('div');
+      c.className = 'confetti';
+      c.style.left = Math.random() * 100 + 'vw';
+      c.style.background = colors[i % colors.length];
+      c.style.borderRadius = Math.random() < 0.5 ? '50%' : '2px';
+      c.style.animationDuration = (2 + Math.random() * 2) + 's';
+      document.body.appendChild(c);
+      setTimeout(() => c.remove(), 4000);
+    }
+  }
+
+  listenBtn.addEventListener('click', () => {
+    if (currentProblem) speak(currentProblem.speech);
+  });
+  nextBtn.addEventListener('click', () => {
+    round++;
+    showRound();
+  });
+  restartBtn.addEventListener('click', () => {
+    round = 0;
+    stars = 0;
+    starsEl.textContent = 0;
+    gameArea.style.display = 'block';
+    endScreen.classList.remove('show');
+    showRound();
+  });
+
+  showRound();
+})();
+</script>
+</body>
+</html>

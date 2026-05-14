@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Cookie Bakery!</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    min-height: 100%;
+    font-family: 'Comic Sans MS', 'Marker Felt', cursive, sans-serif;
+    background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+    user-select: none;
+    overflow-x: hidden;
+  }
+  body { padding: 16px; min-height: 100vh; }
+  #app { max-width: 900px; margin: 0 auto; }
+
+  /* HUD */
+  #hud {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0 8px;
+  }
+  .badge {
+    background: rgba(255,255,255,0.92);
+    border: 4px solid #ff7043;
+    border-radius: 30px;
+    padding: 8px 18px;
+    font-size: clamp(16px, 3vw, 24px);
+    font-weight: bold;
+    color: #5d4037;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.1);
+  }
+
+  /* Step pips */
+  .pips { display: flex; gap: 6px; }
+  .pip {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    border: 3px solid #d84315;
+  }
+  .pip.done { background: #4caf50; border-color: #2e7d32; }
+  .pip.current { background: #ffeb3b; border-color: #fbc02d; transform: scale(1.3); }
+
+  /* Main card */
+  .card {
+    background: #fffaf0;
+    border-radius: 24px;
+    box-shadow:
+      0 0 0 6px #fff,
+      0 0 0 12px #d84315,
+      0 20px 40px rgba(0,0,0,0.25);
+    padding: 24px 20px;
+    min-height: 500px;
+    text-align: center;
+    position: relative;
+  }
+  h2.title {
+    font-size: clamp(24px, 5vw, 36px);
+    color: #d84315;
+    margin-bottom: 8px;
+  }
+  .instr {
+    font-size: clamp(18px, 3.5vw, 24px);
+    color: #4e342e;
+    margin-bottom: 16px;
+    min-height: 30px;
+  }
+
+  /* Buttons */
+  .btn {
+    font-family: inherit;
+    font-size: clamp(20px, 4vw, 30px);
+    font-weight: bold;
+    border-radius: 26px;
+    padding: 14px 32px;
+    cursor: pointer;
+    border: 5px solid;
+    box-shadow: 0 6px 0 rgba(0,0,0,0.2);
+    transition: transform 0.1s;
+    margin: 8px;
+  }
+  .btn:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,0.2); }
+  .btn:hover  { transform: scale(1.04); }
+  .btn.yellow { background: #ffeb3b; border-color: #fbc02d; color: #5d4037; }
+  .btn.green  { background: #a5d6a7; border-color: #388e3c; color: #1b5e20; }
+  .btn.red    { background: #ef9a9a; border-color: #c62828; color: #b71c1c; }
+
+  /* ---- Step 1: Ingredients ---- */
+  .recipe {
+    background: #fff3e0;
+    border: 4px dashed #ff9800;
+    border-radius: 18px;
+    padding: 12px;
+    margin-bottom: 14px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+  }
+  .recipe-item {
+    background: white;
+    border: 3px solid #ffb74d;
+    border-radius: 12px;
+    padding: 6px 12px;
+    font-size: clamp(16px, 3vw, 22px);
+    font-weight: bold;
+    color: #4e342e;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .recipe-item.got {
+    background: #c8e6c9;
+    border-color: #4caf50;
+    color: #2e7d32;
+    text-decoration: line-through;
+  }
+
+  .shelf {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .ingredient {
+    background: #fff8e1;
+    border: 4px solid #ffb300;
+    border-radius: 18px;
+    padding: 14px 6px;
+    cursor: pointer;
+    font-size: clamp(38px, 7vw, 52px);
+    box-shadow: 0 5px 0 #ff8f00;
+    transition: transform 0.1s;
+    position: relative;
+  }
+  .ingredient:hover  { transform: scale(1.05); }
+  .ingredient:active { transform: translateY(3px); box-shadow: 0 2px 0 #ff8f00; }
+  .ingredient .name {
+    display: block;
+    font-size: clamp(13px, 2.5vw, 17px);
+    font-weight: bold;
+    color: #4e342e;
+    margin-top: 4px;
+  }
+  .ingredient.used { opacity: 0.3; pointer-events: none; }
+  .ingredient.shake { animation: shake 0.4s; }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+  }
+
+  .bowl-area {
+    font-size: clamp(80px, 16vw, 130px);
+    margin: 8px 0;
+    min-height: 130px;
+    line-height: 1;
+  }
+
+  /* ---- Step 2: Mix ---- */
+  .mix-bowl {
+    font-size: clamp(120px, 22vw, 180px);
+    cursor: pointer;
+    display: inline-block;
+    transition: transform 0.1s;
+    margin: 10px 0;
+  }
+  .mix-bowl.spinning { animation: spin 0.4s; }
+  @keyframes spin {
+    0% { transform: rotate(0); }
+    50% { transform: rotate(20deg) scale(1.1); }
+    100% { transform: rotate(-20deg) scale(1); }
+  }
+  .progress-bar {
+    background: #ffe0b2;
+    border: 4px solid #ff7043;
+    border-radius: 20px;
+    height: 36px;
+    width: 80%;
+    max-width: 400px;
+    margin: 16px auto;
+    overflow: hidden;
+    position: relative;
+  }
+  .progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #ffb74d, #ff7043);
+    transition: width 0.2s;
+  }
+  .progress-label {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: #5d4037;
+    font-size: 18px;
+  }
+
+  /* ---- Step 3: Shape ---- */
+  .tray {
+    background: #6d4c41;
+    border: 6px solid #4e342e;
+    border-radius: 16px;
+    padding: 18px;
+    margin: 14px auto;
+    max-width: 480px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    cursor: pointer;
+  }
+  .tray-slot {
+    background: #a1887f;
+    border: 3px dashed #fff;
+    border-radius: 50%;
+    aspect-ratio: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(36px, 7vw, 56px);
+  }
+  .tray-slot.filled { border-style: solid; border-color: transparent; }
+  .tray-slot.filled.pop { animation: pop 0.4s; }
+  @keyframes pop {
+    0%   { transform: scale(0); }
+    70%  { transform: scale(1.3); }
+    100% { transform: scale(1); }
+  }
+
+  /* ---- Step 4: Bake ---- */
+  .oven {
+    background: #424242;
+    border: 8px solid #212121;
+    border-radius: 18px;
+    padding: 18px;
+    margin: 14px auto;
+    max-width: 460px;
+    position: relative;
+  }
+  .oven-window {
+    background: radial-gradient(circle, #ff9800 0%, #ff5722 100%);
+    border: 5px solid #1a1a1a;
+    border-radius: 12px;
+    padding: 20px;
+    font-size: clamp(40px, 8vw, 60px);
+    min-height: 140px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    position: relative;
+    overflow: hidden;
+  }
+  .oven-window::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(45deg, transparent, rgba(255,255,200,0.3), transparent);
+    animation: heat 2s linear infinite;
+  }
+  @keyframes heat {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+  .temp-gauge {
+    background: #fff3e0;
+    border: 5px solid #5d4037;
+    border-radius: 24px;
+    height: 50px;
+    width: 90%;
+    max-width: 460px;
+    margin: 16px auto 6px;
+    overflow: hidden;
+    position: relative;
+  }
+  .temp-zones {
+    position: absolute;
+    inset: 0;
+    display: flex;
+  }
+  .temp-zones .raw   { flex: 0 0 35%; background: rgba(255,193,7,0.35); }
+  .temp-zones .ok    { flex: 0 0 30%; background: rgba(76,175,80,0.55); }
+  .temp-zones .burnt { flex: 0 0 35%; background: rgba(244,67,54,0.35); }
+  .temp-needle {
+    position: absolute;
+    top: -4px; bottom: -4px;
+    width: 6px;
+    background: #1a1a1a;
+    border-radius: 4px;
+    left: 0;
+    transition: left 0.05s linear;
+  }
+  .zone-labels {
+    display: flex;
+    width: 90%;
+    max-width: 460px;
+    margin: 0 auto 12px;
+    font-size: clamp(13px, 2.5vw, 17px);
+    font-weight: bold;
+    color: #4e342e;
+  }
+  .zone-labels span { flex: 0 0 33.33%; text-align: center; }
+
+  /* ---- Step 5: Decorate ---- */
+  .toppings {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+    margin: 14px 0;
+    flex-wrap: wrap;
+  }
+  .topping {
+    background: #fff8e1;
+    border: 4px solid #ff9800;
+    border-radius: 18px;
+    padding: 10px 14px;
+    cursor: pointer;
+    font-size: clamp(30px, 6vw, 44px);
+    box-shadow: 0 5px 0 #ef6c00;
+    transition: transform 0.1s;
+  }
+  .topping:hover  { transform: scale(1.05); }
+  .topping:active { transform: translateY(3px); box-shadow: 0 2px 0 #ef6c00; }
+  .topping.selected {
+    background: #fff176;
+    border-color: #f57f17;
+    transform: scale(1.1);
+    box-shadow: 0 0 16px #ffeb3b;
+  }
+  .topping .name {
+    display: block;
+    font-size: clamp(13px, 2.5vw, 17px);
+    font-weight: bold;
+    color: #4e342e;
+  }
+  .cookie-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    max-width: 480px;
+    margin: 14px auto;
+  }
+  .cookie {
+    background: #d7a96b;
+    border: 4px solid #8d6e63;
+    border-radius: 50%;
+    aspect-ratio: 1 / 1;
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.1s;
+    overflow: hidden;
+  }
+  .cookie:hover { transform: scale(1.05); }
+  .cookie .deco {
+    position: absolute;
+    font-size: 18px;
+    pointer-events: none;
+    animation: pop 0.3s;
+  }
+
+  /* ---- End screen ---- */
+  .stars-big {
+    font-size: clamp(48px, 10vw, 76px);
+    letter-spacing: 6px;
+    margin: 16px 0;
+  }
+  .star-anim {
+    display: inline-block;
+    animation: starpop 0.6s backwards;
+  }
+  @keyframes starpop {
+    0%   { transform: scale(0) rotate(-180deg); opacity: 0; }
+    100% { transform: scale(1) rotate(0); opacity: 1; }
+  }
+
+  .confetti {
+    position: fixed;
+    width: 12px; height: 12px;
+    top: -20px;
+    pointer-events: none;
+    z-index: 100;
+    animation: fall 3s linear forwards;
+  }
+  @keyframes fall {
+    to { transform: translateY(110vh) rotate(720deg); }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="hud">
+    <div class="badge" id="stepLabel">Step 1 of 5</div>
+    <div class="pips" id="pips"></div>
+    <div class="badge">⭐ <span id="stars">0</span></div>
+  </div>
+  <div class="card" id="card"></div>
+</div>
+
+<script>
+(() => {
+  const card     = document.getElementById('card');
+  const stepLbl  = document.getElementById('stepLabel');
+  const pipsEl   = document.getElementById('pips');
+  const starsEl  = document.getElementById('stars');
+
+  const TOTAL_STEPS = 5;
+  let stars = 0;
+  let bakeStars = 0; // earned from bake timing
+  let cookieCount = 6;
+
+  // ----- AUDIO -----
+  let audioCtx = null;
+  function beep(freq, dur, type='square', vol=0.15) {
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = type; o.frequency.value = freq;
+      g.gain.value = vol;
+      o.connect(g).connect(audioCtx.destination);
+      o.start();
+      g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+      o.stop(audioCtx.currentTime + dur);
+    } catch(e) {}
+  }
+  const sfx = {
+    plop: () => beep(440, 0.08, 'sine'),
+    yum:  () => { [523,659,784].forEach((f,i)=>setTimeout(()=>beep(f,0.15,'triangle',0.18), i*100)); },
+    no:   () => beep(180, 0.18, 'sawtooth'),
+    stir: () => beep(220 + Math.random()*200, 0.06, 'square', 0.08),
+    ding: () => { beep(880,0.1); setTimeout(()=>beep(1320,0.18),80); },
+    win:  () => { [523,659,784,1047,1318].forEach((f,i)=>setTimeout(()=>beep(f,0.2,'triangle',0.2), i*140)); },
+  };
+
+  function speak(text) {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 0.9; u.pitch = 1.15; u.lang = 'en-US';
+    window.speechSynthesis.speak(u);
+  }
+
+  function setPips(current) {
+    pipsEl.innerHTML = '';
+    for (let i = 0; i < TOTAL_STEPS; i++) {
+      const p = document.createElement('div');
+      p.className = 'pip' + (i < current ? ' done' : i === current ? ' current' : '');
+      pipsEl.appendChild(p);
+    }
+  }
+
+  function awardStar() {
+    stars++;
+    starsEl.textContent = stars;
+    burstConfetti();
+  }
+
+  function burstConfetti() {
+    const colors = ['#ff5252','#ffeb3b','#4caf50','#2196f3','#e040fb','#ff9800'];
+    for (let i = 0; i < 28; i++) {
+      const c = document.createElement('div');
+      c.className = 'confetti';
+      c.style.left = Math.random() * 100 + 'vw';
+      c.style.background = colors[i % colors.length];
+      c.style.borderRadius = Math.random() < 0.5 ? '50%' : '2px';
+      c.style.animationDuration = (2 + Math.random() * 2) + 's';
+      document.body.appendChild(c);
+      setTimeout(() => c.remove(), 4000);
+    }
+  }
+
+  // =========================================================
+  // STEP 0 — Welcome
+  // =========================================================
+  function renderWelcome() {
+    setPips(-1);
+    stepLbl.textContent = 'Welcome!';
+    card.innerHTML = `
+      <div style="font-size: clamp(80px, 16vw, 130px);">🐻👩‍🍳🍪</div>
+      <h2 class="title">Cookie Bakery!</h2>
+      <p class="instr">Help Bear bake yummy cookies in 5 steps!</p>
+      <ol style="text-align:left; max-width:380px; margin: 14px auto; font-size: clamp(16px,3vw,22px); color:#5d4037; line-height: 1.7;">
+        <li>🥣 Add ingredients</li>
+        <li>🥄 Mix the dough</li>
+        <li>🍪 Shape cookies</li>
+        <li>🔥 Bake them</li>
+        <li>✨ Decorate!</li>
+      </ol>
+      <button class="btn yellow" id="goBtn">Let's Bake! 🚀</button>
+    `;
+    document.getElementById('goBtn').addEventListener('click', () => {
+      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+      stars = 0; bakeStars = 0; starsEl.textContent = 0;
+      renderStep1();
+    });
+  }
+
+  // =========================================================
+  // STEP 1 — Ingredients
+  // =========================================================
+  const RECIPE = [
+    { id:'flour', emoji:'🌾', name:'Flour' },
+    { id:'sugar', emoji:'🍬', name:'Sugar' },
+    { id:'egg',   emoji:'🥚', name:'Egg' },
+    { id:'butter',emoji:'🧈', name:'Butter' },
+    { id:'choco', emoji:'🍫', name:'Chocolate' },
+  ];
+  const DECOYS = [
+    { id:'broccoli', emoji:'🥦', name:'Broccoli' },
+    { id:'pickle',   emoji:'🥒', name:'Pickle' },
+    { id:'sock',     emoji:'🧦', name:'Sock' },
+    { id:'fish',     emoji:'🐟', name:'Fish' },
+  ];
+
+  function renderStep1() {
+    setPips(0);
+    stepLbl.textContent = 'Step 1 of 5';
+    speak("Step one! Add the ingredients to the bowl.");
+    const need = new Set(RECIPE.map(r => r.id));
+    const added = new Set();
+    const all = [...RECIPE, ...DECOYS].sort(() => Math.random() - 0.5);
+
+    card.innerHTML = `
+      <h2 class="title">🥣 Add the Ingredients!</h2>
+      <p class="instr">Tap the things that go in cookies. <br>Skip the silly ones!</p>
+      <div class="recipe" id="recipe"></div>
+      <div class="bowl-area" id="bowl">🥣</div>
+      <div class="shelf" id="shelf"></div>
+    `;
+
+    const recipeEl = document.getElementById('recipe');
+    RECIPE.forEach(r => {
+      const el = document.createElement('div');
+      el.className = 'recipe-item';
+      el.id = 'r-' + r.id;
+      el.innerHTML = `${r.emoji} ${r.name}`;
+      recipeEl.appendChild(el);
+    });
+
+    const shelfEl = document.getElementById('shelf');
+    const bowlEl = document.getElementById('bowl');
+    all.forEach(item => {
+      const el = document.createElement('div');
+      el.className = 'ingredient';
+      el.innerHTML = `${item.emoji}<span class="name">${item.name}</span>`;
+      el.addEventListener('click', () => {
+        if (need.has(item.id) && !added.has(item.id)) {
+          added.add(item.id);
+          el.classList.add('used');
+          document.getElementById('r-' + item.id).classList.add('got');
+          bowlEl.textContent = '🥣' + ' ' + Array.from(added).map(id => {
+            const r = RECIPE.find(x => x.id === id); return r ? r.emoji : '';
+          }).join('');
+          sfx.plop();
+          if (added.size === RECIPE.length) {
+            awardStar();
+            speak("Great job! All ingredients in the bowl!");
+            setTimeout(renderStep2, 1100);
+          }
+        } else if (added.has(item.id)) {
+          // already used
+        } else {
+          // decoy
+          el.classList.add('shake');
+          setTimeout(() => el.classList.remove('shake'), 400);
+          sfx.no();
+          speak("Yuck! That doesn't go in cookies!");
+        }
+      });
+      shelfEl.appendChild(el);
+    });
+  }
+
+  // =========================================================
+  // STEP 2 — Mix
+  // =========================================================
+  function renderStep2() {
+    setPips(1);
+    stepLbl.textContent = 'Step 2 of 5';
+    speak("Step two! Tap the bowl to mix the dough!");
+    card.innerHTML = `
+      <h2 class="title">🥄 Mix the Dough!</h2>
+      <p class="instr">Tap the bowl lots of times to mix!</p>
+      <div class="mix-bowl" id="mixBowl">🥣🥄</div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="mixFill"></div>
+        <div class="progress-label" id="mixLabel">Tap to mix!</div>
+      </div>
+    `;
+    const bowl = document.getElementById('mixBowl');
+    const fill = document.getElementById('mixFill');
+    const label = document.getElementById('mixLabel');
+    let count = 0;
+    const TARGET = 18;
+    bowl.addEventListener('click', () => {
+      if (count >= TARGET) return;
+      count++;
+      const pct = Math.min(100, (count / TARGET) * 100);
+      fill.style.width = pct + '%';
+      bowl.classList.remove('spinning');
+      void bowl.offsetWidth;
+      bowl.classList.add('spinning');
+      sfx.stir();
+      if (count < TARGET) {
+        label.textContent = count < 6 ? 'Keep mixing!' :
+                            count < 12 ? 'Looking good!' :
+                            'Almost there!';
+      } else {
+        label.textContent = '✨ Dough is ready! ✨';
+        awardStar();
+        speak("The dough is ready!");
+        setTimeout(renderStep3, 1000);
+      }
+    });
+  }
+
+  // =========================================================
+  // STEP 3 — Shape cookies
+  // =========================================================
+  function renderStep3() {
+    setPips(2);
+    stepLbl.textContent = 'Step 3 of 5';
+    speak("Step three! Tap each spot to make a cookie.");
+    let slots = Array(cookieCount).fill(false);
+    card.innerHTML = `
+      <h2 class="title">🍪 Shape the Cookies!</h2>
+      <p class="instr">Tap each circle to make a cookie!</p>
+      <div class="tray" id="tray"></div>
+      <p style="color:#5d4037; font-weight:bold; font-size: clamp(16px,3vw,22px);">
+        <span id="madeCount">0</span> of ${cookieCount} cookies made
+      </p>
+    `;
+    const tray = document.getElementById('tray');
+    const madeEl = document.getElementById('madeCount');
+    for (let i = 0; i < cookieCount; i++) {
+      const slot = document.createElement('div');
+      slot.className = 'tray-slot';
+      slot.addEventListener('click', () => {
+        if (slots[i]) return;
+        slots[i] = true;
+        slot.classList.add('filled', 'pop');
+        slot.textContent = '🍪';
+        sfx.plop();
+        const made = slots.filter(Boolean).length;
+        madeEl.textContent = made;
+        if (made === cookieCount) {
+          awardStar();
+          speak("All cookies are ready to bake!");
+          setTimeout(renderStep4, 1000);
+        }
+      });
+      tray.appendChild(slot);
+    }
+  }
+
+  // =========================================================
+  // STEP 4 — Bake
+  // =========================================================
+  function renderStep4() {
+    setPips(3);
+    stepLbl.textContent = 'Step 4 of 5';
+    speak("Step four! Watch the cookies bake. Take them out when the needle is in the green zone!");
+    card.innerHTML = `
+      <h2 class="title">🔥 Bake the Cookies!</h2>
+      <p class="instr">Take them out when the needle is in the <strong style="color:#2e7d32">GREEN</strong> zone!</p>
+      <div class="oven">
+        <div class="oven-window" id="ovenWin">${'🍪'.repeat(cookieCount)}</div>
+      </div>
+      <div class="temp-gauge">
+        <div class="temp-zones">
+          <div class="raw"></div><div class="ok"></div><div class="burnt"></div>
+        </div>
+        <div class="temp-needle" id="needle"></div>
+      </div>
+      <div class="zone-labels">
+        <span>🥶 Raw</span><span>✅ Perfect!</span><span>🔥 Burnt</span>
+      </div>
+      <button class="btn green" id="takeOut">Take Out! 🧤</button>
+    `;
+    const needle = document.getElementById('needle');
+    const win = document.getElementById('ovenWin');
+    let pos = 0;
+    let dir = 1;
+    let stopped = false;
+    const speed = 0.55; // % per frame
+
+    function tick() {
+      if (stopped) return;
+      pos += dir * speed;
+      if (pos >= 100) { pos = 100; dir = -1; }
+      if (pos <= 0)   { pos = 0;   dir =  1; }
+      needle.style.left = pos + '%';
+      // Visual: cookies darken as needle moves right
+      const burn = Math.max(0, (pos - 65) / 35);
+      win.style.filter = `brightness(${1 - burn*0.6}) sepia(${burn})`;
+      requestAnimationFrame(tick);
+    }
+    tick();
+
+    document.getElementById('takeOut').addEventListener('click', () => {
+      if (stopped) return;
+      stopped = true;
+      sfx.ding();
+      let result, gained;
+      if (pos < 35) {
+        result = 'raw';   gained = 1;
+        win.innerHTML = '🥣'.repeat(cookieCount);
+        speak("Oh, the dough is still a bit raw! That's ok, Bear still likes it!");
+      } else if (pos <= 65) {
+        result = 'perfect'; gained = 3;
+        win.innerHTML = '🍪'.repeat(cookieCount);
+        speak("Perfect cookies! Yummy!");
+      } else {
+        result = 'burnt';  gained = 1;
+        win.innerHTML = '⬛'.repeat(cookieCount);
+        speak("A bit crispy! Bear loves them anyway!");
+      }
+      bakeStars = gained;
+      stars += gained - 1; // we already awarded 1 base star
+      stars = Math.max(stars, 0);
+      // Just add what we earned vs. base; simpler: award (gained-0) and skip the auto star
+      // Cleaner: just bump score by gained
+      starsEl.textContent = stars + 0;
+      // Recompute: bake gives bakeStars (1-3) directly
+      awardStarsForBake(gained);
+
+      const msg = result === 'perfect' ? '🌟 Perfect Bake! 🌟' :
+                  result === 'raw'     ? '🥣 A bit raw — still tasty!' :
+                  '🔥 A bit crispy — still yum!';
+      const banner = document.createElement('p');
+      banner.style.cssText = 'font-size:clamp(22px,4vw,30px); font-weight:bold; color:#d84315; margin-top:14px;';
+      banner.textContent = msg;
+      card.appendChild(banner);
+      setTimeout(renderStep5, 1600);
+    });
+  }
+
+  function awardStarsForBake(n) {
+    // We previously called awardStar() (which incremented stars by 1)? Actually we didn't in step 4.
+    // We award `n` stars here.
+    for (let i = 0; i < n; i++) {
+      stars++;
+    }
+    starsEl.textContent = stars;
+    burstConfetti();
+  }
+
+  // =========================================================
+  // STEP 5 — Decorate
+  // =========================================================
+  const TOPPINGS = [
+    { id:'sprinkles', emoji:'🎉', name:'Sprinkles' },
+    { id:'frosting',  emoji:'🍦', name:'Frosting' },
+    { id:'chips',     emoji:'🟤', name:'Choc Chips' },
+    { id:'heart',     emoji:'❤️', name:'Heart' },
+  ];
+
+  function renderStep5() {
+    setPips(4);
+    stepLbl.textContent = 'Step 5 of 5';
+    speak("Last step! Pick a topping, then tap a cookie to decorate it!");
+    card.innerHTML = `
+      <h2 class="title">✨ Decorate the Cookies!</h2>
+      <p class="instr">Pick a topping, then tap a cookie!</p>
+      <div class="toppings" id="toppings"></div>
+      <div class="cookie-grid" id="cookieGrid"></div>
+      <button class="btn yellow" id="doneBtn">All Done! 🎁</button>
+    `;
+    let selected = TOPPINGS[0];
+    const topEl = document.getElementById('toppings');
+    TOPPINGS.forEach((t, i) => {
+      const b = document.createElement('div');
+      b.className = 'topping' + (i === 0 ? ' selected' : '');
+      b.innerHTML = `${t.emoji}<span class="name">${t.name}</span>`;
+      b.addEventListener('click', () => {
+        selected = t;
+        topEl.querySelectorAll('.topping').forEach(x => x.classList.remove('selected'));
+        b.classList.add('selected');
+        sfx.plop();
+      });
+      topEl.appendChild(b);
+    });
+
+    const grid = document.getElementById('cookieGrid');
+    for (let i = 0; i < cookieCount; i++) {
+      const c = document.createElement('div');
+      c.className = 'cookie';
+      c.addEventListener('click', () => {
+        const d = document.createElement('span');
+        d.className = 'deco';
+        d.textContent = selected.emoji;
+        const rect = c.getBoundingClientRect();
+        d.style.left = (10 + Math.random() * (rect.width - 30)) + 'px';
+        d.style.top  = (10 + Math.random() * (rect.height - 30)) + 'px';
+        c.appendChild(d);
+        sfx.plop();
+      });
+      grid.appendChild(c);
+    }
+    document.getElementById('doneBtn').addEventListener('click', () => {
+      awardStar();
+      sfx.win();
+      renderEnd();
+    });
+  }
+
+  // =========================================================
+  // END — Serve to Bear
+  // =========================================================
+  function renderEnd() {
+    setPips(TOTAL_STEPS);
+    stepLbl.textContent = 'All Done!';
+    speak(`Yum yum! Thank you! You earned ${stars} stars!`);
+    for (let k = 0; k < 4; k++) setTimeout(burstConfetti, k * 400);
+    let starHTML = '';
+    for (let i = 0; i < stars; i++) {
+      starHTML += `<span class="star-anim" style="animation-delay:${i*0.12}s">⭐</span>`;
+    }
+    card.innerHTML = `
+      <div style="font-size: clamp(100px, 20vw, 150px);">🐻🍪</div>
+      <h2 class="title">Yum! Bear loves them!</h2>
+      <p class="instr">Thank you, super baker! 👩‍🍳</p>
+      <div class="stars-big">${starHTML}</div>
+      <p style="font-size: clamp(20px,4vw,28px); color:#4e342e; font-weight:bold;">
+        You earned <strong>${stars}</strong> stars!
+      </p>
+      <button class="btn yellow" id="againBtn">Bake Again! 🍪</button>
+    `;
+    document.getElementById('againBtn').addEventListener('click', () => {
+      stars = 0; starsEl.textContent = 0;
+      renderWelcome();
+    });
+  }
+
+  renderWelcome();
+})();
+</script>
+</body>
+</html>
