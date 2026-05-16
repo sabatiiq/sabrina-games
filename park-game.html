@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Park Snacks!</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    min-height: 100%;
+    font-family: 'Comic Sans MS', 'Marker Felt', cursive, sans-serif;
+    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 60%, #ffd3a5 100%);
+    user-select: none;
+    overflow-x: hidden;
+  }
+  body { padding: 16px; min-height: 100vh; }
+  #app { max-width: 900px; margin: 0 auto; }
+
+  #hud {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding: 0 4px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .badge {
+    background: rgba(255,255,255,0.9);
+    border: 4px solid #43a047;
+    border-radius: 30px;
+    padding: 8px 18px;
+    font-size: clamp(16px, 2.8vw, 22px);
+    font-weight: bold;
+    color: #2e7d32;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.1);
+    text-decoration: none;
+    display: inline-block;
+  }
+
+  /* Main park scene */
+  .park {
+    background: linear-gradient(180deg, #87ceeb 0%, #b3e5fc 35%, #c5e1a5 55%, #81c784 100%);
+    border-radius: 24px;
+    box-shadow:
+      0 0 0 8px #fff,
+      0 0 0 14px #43a047,
+      0 20px 40px rgba(0,0,0,0.3);
+    padding: 14px;
+    position: relative;
+    min-height: 360px;
+    overflow: hidden;
+  }
+
+  /* Background decorations */
+  .deco {
+    position: absolute;
+    pointer-events: none;
+    font-size: 36px;
+    opacity: 0.9;
+  }
+  .deco.cloud { top: 8px; font-size: 42px; }
+  .deco.tree  { bottom: 0; font-size: 70px; }
+  .deco.sun   { top: 10px; right: 14px; font-size: 60px; animation: spin 30s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Animal grid */
+  .animals {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+    padding: 50px 6px 18px;
+    min-height: 340px;
+  }
+  .animal {
+    background: rgba(255,255,255,0.55);
+    border: 4px solid transparent;
+    border-radius: 18px;
+    padding: 10px 4px 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.15s, border-color 0.15s, background 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+  }
+  .animal:hover { transform: translateY(-4px); border-color: #43a047; }
+  .animal-emoji {
+    font-size: clamp(48px, 10vw, 80px);
+    line-height: 1;
+    margin-bottom: 4px;
+    transition: transform 0.2s;
+    display: inline-block;
+  }
+  .animal.idle .animal-emoji { animation: idle 3s ease-in-out infinite; }
+  @keyframes idle {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-4px); }
+  }
+  .animal-name {
+    font-size: clamp(13px, 2.4vw, 18px);
+    font-weight: bold;
+    color: #2e7d32;
+    text-shadow: 1px 1px 0 #fff;
+  }
+  .animal.eating .animal-emoji { animation: eat 0.6s ease-in-out 2; }
+  @keyframes eat {
+    0%, 100% { transform: scale(1) rotate(0); }
+    50%      { transform: scale(1.25) rotate(-8deg); }
+  }
+  .animal.shake .animal-emoji { animation: shake 0.5s; }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25%      { transform: translateX(-8px) rotate(-6deg); }
+    75%      { transform: translateX(8px) rotate(6deg); }
+  }
+  .animal.fed {
+    background: rgba(200, 230, 201, 0.85);
+    border-color: #4caf50;
+    cursor: default;
+  }
+  .animal.fed::after {
+    content: "✓";
+    position: absolute;
+    background: #4caf50;
+    color: #fff;
+    border-radius: 50%;
+    width: 26px; height: 26px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: bold;
+    margin-top: -90px;
+    margin-left: 28px;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.25);
+    animation: pop 0.4s;
+  }
+  @keyframes pop {
+    0%   { transform: scale(0); }
+    100% { transform: scale(1); }
+  }
+
+  /* Prompt area */
+  .prompt {
+    text-align: center;
+    font-size: clamp(18px, 3.4vw, 26px);
+    color: #4e342e;
+    background: rgba(255,255,255,0.85);
+    border: 3px solid #ffb300;
+    border-radius: 20px;
+    padding: 10px 16px;
+    margin: 12px 0;
+    min-height: 50px;
+  }
+  .prompt b { color: #d84315; }
+
+  /* Snack tray */
+  .tray {
+    background: #ffe0b2;
+    border: 5px solid #a0522d;
+    border-radius: 22px;
+    padding: 12px 8px;
+    margin-top: 6px;
+    box-shadow: 0 6px 0 #6d3917, inset 0 4px 8px rgba(0,0,0,0.1);
+  }
+  .tray-label {
+    text-align: center;
+    font-size: clamp(14px, 2.5vw, 18px);
+    color: #5d4037;
+    font-weight: bold;
+    margin-bottom: 6px;
+  }
+  .snacks {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+  }
+  .snack {
+    background: #fffaf0;
+    border: 4px solid #ff9800;
+    border-radius: 16px;
+    padding: 12px 4px;
+    font-size: clamp(36px, 8vw, 60px);
+    cursor: pointer;
+    text-align: center;
+    line-height: 1;
+    box-shadow: 0 5px 0 #f57c00;
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+  .snack:hover  { transform: scale(1.06); }
+  .snack:active { transform: translateY(3px); box-shadow: 0 2px 0 #f57c00; }
+  .snack.selected {
+    background: #fff59d;
+    border-color: #fbc02d;
+    box-shadow: 0 0 0 4px #fff8a0, 0 5px 0 #f57c00;
+    animation: bob 0.6s ease-in-out infinite;
+  }
+  @keyframes bob {
+    0%, 100% { transform: translateY(-4px) scale(1.05); }
+    50%      { transform: translateY(-10px) scale(1.1); }
+  }
+  .snack.used {
+    opacity: 0.25;
+    pointer-events: none;
+    filter: grayscale(1);
+  }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+  .btn {
+    font-family: inherit;
+    font-size: clamp(16px, 3vw, 22px);
+    font-weight: bold;
+    border-radius: 22px;
+    padding: 10px 20px;
+    cursor: pointer;
+    border: 4px solid;
+    box-shadow: 0 5px 0 rgba(0,0,0,0.2);
+    transition: transform 0.1s;
+    text-decoration: none;
+    display: inline-block;
+  }
+  .btn:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,0.2); }
+  .btn.listen { background: #bbdefb; border-color: #1976d2; color: #0d47a1; }
+  .btn.home   { background: #fff; border-color: #43a047; color: #2e7d32; }
+  .btn.restart{ background: #ffeb3b; border-color: #fbc02d; color: #5d4037; }
+
+  /* End screen */
+  #endScreen {
+    display: none;
+    text-align: center;
+    padding: 20px 10px;
+  }
+  #endScreen.show { display: block; }
+  #endScreen h1 {
+    font-size: clamp(34px, 7vw, 60px);
+    color: #2e7d32;
+    text-shadow: 3px 3px 0 #fff, 6px 6px 0 rgba(0,0,0,0.1);
+    margin-bottom: 16px;
+  }
+  .happy-row {
+    font-size: clamp(50px, 11vw, 90px);
+    line-height: 1.1;
+    margin: 14px 0;
+    letter-spacing: -6px;
+    animation: bounce 1.6s ease-in-out infinite;
+  }
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-10px); }
+  }
+  .star-row {
+    font-size: clamp(40px, 8vw, 60px);
+    margin: 10px 0;
+    letter-spacing: 6px;
+  }
+  .star-row .star {
+    display: inline-block;
+    animation: starPop 0.6s backwards;
+  }
+  @keyframes starPop {
+    0%   { transform: scale(0) rotate(-180deg); opacity: 0; }
+    100% { transform: scale(1) rotate(0);       opacity: 1; }
+  }
+  .end-msg {
+    font-size: clamp(18px, 3.4vw, 24px);
+    color: #4e342e;
+    margin-bottom: 16px;
+  }
+  .end-buttons { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; }
+
+  /* Floating snack animation when fed */
+  .flying-snack {
+    position: fixed;
+    font-size: 50px;
+    pointer-events: none;
+    z-index: 200;
+    transition: transform 0.5s ease-out, opacity 0.5s ease-out;
+  }
+
+  /* Confetti */
+  .confetti {
+    position: fixed;
+    width: 12px; height: 12px;
+    top: -20px;
+    pointer-events: none;
+    z-index: 100;
+    animation: fall 3s linear forwards;
+  }
+  @keyframes fall {
+    to { transform: translateY(110vh) rotate(720deg); }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="hud">
+    <a class="badge" href="index.html">🏠 Home</a>
+    <div class="badge">🍽️ Fed: <span id="fedCount">0</span> / <span id="totalCount">5</span></div>
+    <div class="badge">⭐ <span id="stars">0</span></div>
+  </div>
+
+  <div id="gameWrap">
+    <div class="park" id="park">
+      <span class="deco cloud" style="left: 8%;">☁️</span>
+      <span class="deco cloud" style="left: 38%; top: 22px;">☁️</span>
+      <span class="deco cloud" style="left: 65%;">☁️</span>
+      <span class="deco sun">☀️</span>
+      <span class="deco tree" style="left: 2%;">🌳</span>
+      <span class="deco tree" style="right: 2%; font-size: 60px;">🌲</span>
+      <span class="deco" style="bottom: 4px; left: 30%; font-size: 30px;">🌷</span>
+      <span class="deco" style="bottom: 4px; left: 55%; font-size: 30px;">🌼</span>
+
+      <div class="animals" id="animals"></div>
+    </div>
+
+    <div class="prompt" id="prompt">Tap a snack, then tap the animal who wants it! 🍽️</div>
+
+    <div class="tray">
+      <div class="tray-label">🧺 Snack Basket</div>
+      <div class="snacks" id="snacks"></div>
+    </div>
+
+    <div class="controls">
+      <button class="btn listen" id="listenBtn">🔊 Hint</button>
+      <a class="btn home" href="index.html">🏠 Home</a>
+    </div>
+  </div>
+
+  <div class="park" id="endScreenWrap" style="display:none; padding: 24px;">
+    <div id="endScreen">
+      <h1>🌳 Thanks for visiting! 🌳</h1>
+      <div class="happy-row" id="happyRow">🦆🐿️🐦🐰🐢</div>
+      <div class="star-row" id="finalStars"></div>
+      <p class="end-msg" id="endMsg">You fed every animal in the park!</p>
+      <div class="end-buttons">
+        <button class="btn restart" id="restartBtn">Play Again 🌳</button>
+        <a class="btn home" href="index.html">🏠 Home</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  // Animals at the park + the snack each one loves
+  const animals = [
+    { emoji: '🦆', name: 'Duck',     food: '🍞', foodWord: 'bread' },
+    { emoji: '🐿️', name: 'Squirrel', food: '🌰', foodWord: 'acorn' },
+    { emoji: '🐦', name: 'Bird',     food: '🪱', foodWord: 'worm' },
+    { emoji: '🐰', name: 'Rabbit',   food: '🥕', foodWord: 'carrot' },
+    { emoji: '🐢', name: 'Turtle',   food: '🥬', foodWord: 'lettuce' }
+  ];
+
+  const animalsEl  = document.getElementById('animals');
+  const snacksEl   = document.getElementById('snacks');
+  const promptEl   = document.getElementById('prompt');
+  const fedCountEl = document.getElementById('fedCount');
+  const totalEl    = document.getElementById('totalCount');
+  const starsEl    = document.getElementById('stars');
+  const listenBtn  = document.getElementById('listenBtn');
+  const restartBtn = document.getElementById('restartBtn');
+  const gameWrap   = document.getElementById('gameWrap');
+  const endWrap    = document.getElementById('endScreenWrap');
+  const endScreen  = document.getElementById('endScreen');
+  const finalStars = document.getElementById('finalStars');
+
+  let selectedSnack = null;   // { food, foodWord, el }
+  let fedSet = new Set();
+  let stars = 0;
+  let busy = false;           // lock during eat animation
+
+  totalEl.textContent = animals.length;
+
+  function speak(text) {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 0.9;
+    u.pitch = 1.1;
+    u.lang = 'en-US';
+    window.speechSynthesis.speak(u);
+  }
+
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function setPrompt(html) {
+    promptEl.innerHTML = html;
+  }
+
+  function selectSnack(snackData, btn) {
+    if (busy) return;
+    if (btn.classList.contains('used')) return;
+    // clear previous selection
+    snacksEl.querySelectorAll('.snack').forEach(s => s.classList.remove('selected'));
+    selectedSnack = { ...snackData, el: btn };
+    btn.classList.add('selected');
+    setPrompt(`You picked <b>${snackData.foodWord}</b>! Who wants it? 🤔`);
+    speak(`${snackData.foodWord}! Who wants ${snackData.foodWord}?`);
+  }
+
+  function feedAnimal(animal, animalEl) {
+    if (busy) return;
+    if (animalEl.classList.contains('fed')) {
+      setPrompt(`${animal.name} is already full! Try another animal.`);
+      return;
+    }
+    if (!selectedSnack) {
+      setPrompt(`First pick a snack from the basket! 🧺`);
+      speak('Pick a snack first!');
+      return;
+    }
+    if (selectedSnack.food === animal.food) {
+      // Correct match
+      busy = true;
+      flySnackTo(selectedSnack.el, animalEl, () => {
+        animalEl.classList.remove('idle');
+        animalEl.classList.add('eating', 'fed');
+        animalEl.querySelector('.animal-emoji').textContent = animal.emoji + '😋';
+        selectedSnack.el.classList.add('used');
+        selectedSnack.el.classList.remove('selected');
+        fedSet.add(animal.name);
+        fedCountEl.textContent = fedSet.size;
+        stars++;
+        starsEl.textContent = stars;
+        setPrompt(`🌟 Yum! ${animal.name}s love <b>${animal.foodWord}</b>! 🌟`);
+        speak(`Yum! ${animal.name}s love ${animal.foodWord}!`);
+        burstConfetti(15);
+        selectedSnack = null;
+        setTimeout(() => {
+          animalEl.classList.remove('eating');
+          animalEl.querySelector('.animal-emoji').textContent = animal.emoji;
+          busy = false;
+          if (fedSet.size === animals.length) {
+            showEnd();
+          }
+        }, 1300);
+      });
+    } else {
+      // Wrong match
+      animalEl.classList.add('shake');
+      setPrompt(`🤔 ${animal.name} doesn't eat that. Try another animal!`);
+      speak(`No, ${animal.name}s don't eat that.`);
+      setTimeout(() => animalEl.classList.remove('shake'), 600);
+    }
+  }
+
+  function flySnackTo(snackEl, animalEl, done) {
+    const snackRect  = snackEl.getBoundingClientRect();
+    const animalRect = animalEl.getBoundingClientRect();
+    const fly = document.createElement('div');
+    fly.className = 'flying-snack';
+    fly.textContent = snackEl.textContent;
+    fly.style.left = snackRect.left + 'px';
+    fly.style.top  = snackRect.top + 'px';
+    document.body.appendChild(fly);
+    requestAnimationFrame(() => {
+      const dx = (animalRect.left + animalRect.width/2)  - (snackRect.left + snackRect.width/2);
+      const dy = (animalRect.top  + animalRect.height/2) - (snackRect.top  + snackRect.height/2);
+      fly.style.transform = `translate(${dx}px, ${dy}px) scale(0.6)`;
+      fly.style.opacity = '0.2';
+    });
+    setTimeout(() => {
+      fly.remove();
+      done();
+    }, 500);
+  }
+
+  function buildAnimals() {
+    animalsEl.innerHTML = '';
+    // Randomize position order each play so the same animal isn't always first
+    const order = shuffle(animals.map((_, i) => i));
+    order.forEach(idx => {
+      const a = animals[idx];
+      const el = document.createElement('div');
+      el.className = 'animal idle';
+      el.innerHTML = `
+        <span class="animal-emoji">${a.emoji}</span>
+        <span class="animal-name">${a.name}</span>
+      `;
+      el.addEventListener('click', () => feedAnimal(a, el));
+      animalsEl.appendChild(el);
+    });
+  }
+
+  function buildSnacks() {
+    snacksEl.innerHTML = '';
+    // Snacks are the foods, shuffled
+    const foods = shuffle(animals.map(a => ({ food: a.food, foodWord: a.foodWord })));
+    foods.forEach(f => {
+      const b = document.createElement('button');
+      b.className = 'snack';
+      b.textContent = f.food;
+      b.setAttribute('aria-label', f.foodWord);
+      b.addEventListener('click', () => selectSnack(f, b));
+      snacksEl.appendChild(b);
+    });
+  }
+
+  function showEnd() {
+    gameWrap.style.display = 'none';
+    endWrap.style.display = 'block';
+    endScreen.style.display = 'block';
+    finalStars.innerHTML = '';
+    for (let i = 0; i < stars; i++) {
+      const s = document.createElement('span');
+      s.className = 'star';
+      s.textContent = '⭐';
+      s.style.animationDelay = (i * 0.15) + 's';
+      finalStars.appendChild(s);
+    }
+    bigCelebration();
+    setTimeout(() => speak('Hooray! You fed every animal in the park! Thanks for visiting!'), 300);
+  }
+
+  function burstConfetti(count) {
+    const colors = ['#ff5252','#ffeb3b','#4caf50','#2196f3','#e040fb','#ff9800','#43a047'];
+    const n = count || 30;
+    for (let i = 0; i < n; i++) {
+      const c = document.createElement('div');
+      c.className = 'confetti';
+      c.style.left = Math.random() * 100 + 'vw';
+      c.style.background = colors[i % colors.length];
+      c.style.borderRadius = Math.random() < 0.5 ? '50%' : '2px';
+      c.style.animationDuration = (2 + Math.random() * 2) + 's';
+      document.body.appendChild(c);
+      setTimeout(() => c.remove(), 4000);
+    }
+  }
+
+  function bigCelebration() {
+    for (let k = 0; k < 4; k++) {
+      setTimeout(() => burstConfetti(28), k * 350);
+    }
+  }
+
+  function start() {
+    selectedSnack = null;
+    fedSet = new Set();
+    stars = 0;
+    busy = false;
+    fedCountEl.textContent = 0;
+    starsEl.textContent = 0;
+    gameWrap.style.display = 'block';
+    endWrap.style.display = 'none';
+    setPrompt('Tap a snack, then tap the animal who wants it! 🍽️');
+    buildAnimals();
+    buildSnacks();
+  }
+
+  listenBtn.addEventListener('click', () => {
+    // Hint: name an animal that still needs feeding and what they eat
+    const remaining = animals.filter(a => !fedSet.has(a.name));
+    if (remaining.length === 0) {
+      speak('All animals are full! Great job!');
+      return;
+    }
+    const pick = remaining[Math.floor(Math.random() * remaining.length)];
+    setPrompt(`💡 Hint: <b>${pick.name}s</b> love <b>${pick.foodWord}</b>!`);
+    speak(`${pick.name}s love ${pick.foodWord}.`);
+  });
+
+  restartBtn.addEventListener('click', start);
+
+  start();
+})();
+</script>
+</body>
+</html>
