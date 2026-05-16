@@ -13,6 +13,7 @@ A little collection of browser games for early learners (age 6 and up). All game
 | ➕ Cookie Math | Addition, subtraction within 20, missing addend | [math-game.html](math-game.html) |
 | 🍄 Super Plumber | Platformer — jumping, timing | [mario-game.html](mario-game.html) |
 | 👩‍🍳 Cookie Bakery | Sequencing, following multi-step instructions | [baking-game.html](baking-game.html) |
+| 👨‍👩‍👧‍👦 Bear's Family | Family vocabulary, matching, listening | [family-game.html](family-game.html) |
 
 ## Tech
 
