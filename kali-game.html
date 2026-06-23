@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Cece Belajar Perkalian!</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    min-height: 100%;
+    font-family: 'Comic Sans MS', 'Marker Felt', cursive, sans-serif;
+    background: linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%);
+    user-select: none;
+    overflow-x: hidden;
+  }
+  body { padding: 20px; min-height: 100vh; }
+  #app { max-width: 900px; margin: 0 auto; }
+
+  #hud {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    padding: 0 10px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .badge {
+    background: rgba(255,255,255,0.92);
+    border: 4px solid #d81b60;
+    border-radius: 30px;
+    padding: 8px 20px;
+    font-size: clamp(18px, 3vw, 26px);
+    font-weight: bold;
+    color: #6a1b9a;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.1);
+  }
+
+  .card {
+    background: #fffdf6;
+    border-radius: 28px;
+    box-shadow:
+      0 0 0 6px #fff,
+      0 0 0 12px #ec407a,
+      0 20px 40px rgba(0,0,0,0.25);
+    padding: 30px 24px;
+    text-align: center;
+    min-height: 480px;
+    position: relative;
+  }
+
+  .hero {
+    font-size: clamp(60px, 12vw, 100px);
+    margin-bottom: 6px;
+    display: inline-block;
+    animation: wiggle 2s ease-in-out infinite;
+  }
+  @keyframes wiggle {
+    0%, 100% { transform: rotate(-3deg); }
+    50%      { transform: rotate(3deg); }
+  }
+
+  .prompt {
+    font-size: clamp(22px, 4.5vw, 32px);
+    color: #6a1b9a;
+    font-weight: bold;
+    margin-bottom: 14px;
+  }
+
+  .visual {
+    background: linear-gradient(180deg, #e1f5fe 0%, #f8bbd0 100%);
+    border: 5px dashed #ec407a;
+    border-radius: 20px;
+    padding: 18px 14px;
+    margin-bottom: 18px;
+    min-height: 90px;
+    line-height: 1.25;
+    word-wrap: break-word;
+  }
+  .visual .group {
+    display: inline-block;
+    background: rgba(255,255,255,0.7);
+    border: 3px solid #ba68c8;
+    border-radius: 14px;
+    padding: 6px 8px;
+    margin: 5px;
+    font-size: clamp(22px, 4.5vw, 34px);
+    line-height: 1.15;
+    vertical-align: middle;
+  }
+  .visual .times {
+    color: #d81b60;
+    font-weight: bold;
+    font-size: clamp(26px, 5vw, 40px);
+    margin: 0 4px;
+    vertical-align: middle;
+  }
+
+  .equation {
+    font-size: clamp(40px, 8vw, 64px);
+    font-weight: bold;
+    color: #4527a0;
+    margin-bottom: 20px;
+    letter-spacing: 2px;
+  }
+  .equation .op { color: #d81b60; margin: 0 6px; }
+  .equation .qmark {
+    color: #d81b60;
+    background: #fff3e0;
+    border: 4px solid #d81b60;
+    border-radius: 14px;
+    padding: 0 18px;
+    display: inline-block;
+    animation: blink 1.2s infinite;
+  }
+  @keyframes blink {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.1); }
+  }
+
+  .choices {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+  .choice {
+    font-family: inherit;
+    font-size: clamp(36px, 7vw, 52px);
+    font-weight: bold;
+    color: #6a1b9a;
+    background: #f8bbd0;
+    border: 5px solid #ec407a;
+    border-radius: 22px;
+    padding: 18px 10px;
+    cursor: pointer;
+    box-shadow: 0 6px 0 #ad1457;
+    transition: transform 0.1s;
+  }
+  .choice:hover  { transform: scale(1.05); }
+  .choice:active { transform: translateY(4px); box-shadow: 0 2px 0 #ad1457; }
+  .choice.right  { background: #c8e6c9; border-color: #4caf50; box-shadow: 0 6px 0 #2e7d32; animation: shake 0.4s; }
+  .choice.wrong  { background: #ffcdd2; border-color: #e53935; box-shadow: 0 6px 0 #c62828; animation: nope 0.4s; }
+  @keyframes shake {
+    0%, 100% { transform: rotate(0); }
+    25%      { transform: rotate(-5deg) scale(1.1); }
+    75%      { transform: rotate(5deg)  scale(1.1); }
+  }
+  @keyframes nope {
+    0%, 100% { transform: translateX(0); }
+    25%      { transform: translateX(-8px); }
+    75%      { transform: translateX(8px); }
+  }
+
+  .controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .btn {
+    font-family: inherit;
+    font-size: clamp(18px, 3.5vw, 26px);
+    font-weight: bold;
+    border-radius: 24px;
+    padding: 12px 24px;
+    cursor: pointer;
+    border: 4px solid;
+    box-shadow: 0 5px 0 rgba(0,0,0,0.2);
+    transition: transform 0.1s;
+  }
+  .btn:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,0.2); }
+  .btn.listen { background: #bbdefb; border-color: #1976d2; color: #0d47a1; }
+  .btn.next   { background: #ffeb3b; border-color: #fbc02d; color: #5d4037; }
+  .btn.next[disabled] { opacity: 0.4; cursor: not-allowed; }
+
+  .feedback {
+    font-size: clamp(22px, 4vw, 30px);
+    font-weight: bold;
+    min-height: 40px;
+    margin-bottom: 12px;
+    color: #2e7d32;
+  }
+
+  /* Layar selesai */
+  #endScreen {
+    display: none;
+    text-align: center;
+    padding: 30px 10px;
+  }
+  #endScreen.show { display: block; }
+  #endScreen h1 {
+    font-size: clamp(34px, 8vw, 60px);
+    color: #ad1457;
+    text-shadow: 3px 3px 0 #fff, 6px 6px 0 rgba(0,0,0,0.1);
+    margin-bottom: 14px;
+  }
+  .star-row {
+    font-size: clamp(36px, 7vw, 56px);
+    margin: 14px 0;
+    letter-spacing: 4px;
+    line-height: 1.4;
+  }
+  .star-row .star {
+    display: inline-block;
+    animation: pop 0.5s backwards;
+  }
+  @keyframes pop {
+    0%   { transform: scale(0) rotate(-180deg); opacity: 0; }
+    100% { transform: scale(1) rotate(0);       opacity: 1; }
+  }
+
+  .confetti {
+    position: fixed;
+    width: 12px; height: 12px;
+    top: -20px;
+    pointer-events: none;
+    z-index: 100;
+    animation: fall 3s linear forwards;
+  }
+  @keyframes fall {
+    to { transform: translateY(110vh) rotate(720deg); }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="hud">
+    <div class="badge">📚 Soal <span id="roundNum">1</span> / <span id="roundTotal">10</span></div>
+    <div class="badge">⭐ <span id="stars">0</span></div>
+  </div>
+
+  <div class="card" id="card">
+    <div id="gameArea">
+      <div class="hero" id="hero">👧</div>
+      <div class="prompt" id="prompt">Ayo hitung bersama Cece!</div>
+      <div class="visual" id="visual"></div>
+      <div class="equation" id="equation"></div>
+      <div class="feedback" id="feedback"></div>
+      <div class="choices" id="choices"></div>
+      <div class="controls">
+        <button class="btn listen" id="listenBtn">🔊 Bacakan</button>
+        <button class="btn next" id="nextBtn" disabled>Lanjut ➡️</button>
+      </div>
+    </div>
+
+    <div id="endScreen">
+      <div style="font-size: clamp(80px, 16vw, 130px);">👧🎉</div>
+      <h1>Hebat! Cece Jago Perkalian!</h1>
+      <div class="star-row" id="finalStars"></div>
+      <p style="font-size: clamp(20px,4vw,28px); color:#6a1b9a; margin: 10px 0 20px;">
+        Kamu mengumpulkan <strong id="finalScore">0</strong> bintang!
+      </p>
+      <button class="btn next" id="restartBtn">Main Lagi 🌟</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const TOTAL_ROUNDS = 10;
+  // Emoji yang dipakai untuk gambar kelompok
+  const ITEMS = ['🍎','🍪','⭐','🍓','🎈','🐱','🌸','🍌'];
+
+  // refs
+  const gameArea  = document.getElementById('gameArea');
+  const endScreen = document.getElementById('endScreen');
+  const roundNumEl= document.getElementById('roundNum');
+  const roundTotEl= document.getElementById('roundTotal');
+  const starsEl   = document.getElementById('stars');
+  const finalStars= document.getElementById('finalStars');
+  const finalScore= document.getElementById('finalScore');
+  const promptEl  = document.getElementById('prompt');
+  const visualEl  = document.getElementById('visual');
+  const equationEl= document.getElementById('equation');
+  const feedbackEl= document.getElementById('feedback');
+  const choicesEl = document.getElementById('choices');
+  const listenBtn = document.getElementById('listenBtn');
+  const nextBtn   = document.getElementById('nextBtn');
+  const restartBtn= document.getElementById('restartBtn');
+
+  roundTotEl.textContent = TOTAL_ROUNDS;
+
+  let round = 0;
+  let stars = 0;
+  let currentProblem = null;
+  let answered = false;
+
+  function speak(text) {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 0.85; u.pitch = 1.15; u.lang = 'id-ID';
+    window.speechSynthesis.speak(u);
+  }
+
+  function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+  // Gambar: a kelompok, masing-masing berisi b benda
+  function groupsVisual(a, b, item) {
+    let html = '';
+    for (let i = 0; i < a; i++) {
+      if (i > 0) html += '<span class="times">×</span>';
+      html += '<span class="group">' + item.repeat(b) + '</span>';
+    }
+    return html;
+  }
+
+  function makeProblem() {
+    // Tingkat kesulitan bertahap:
+    //  soal 0-2 : perkalian kecil dengan gambar kelompok (1-5)
+    //  soal 3-4 : perkalian tanpa gambar (2-9)
+    //  soal 5   : soal cerita
+    //  soal 6-7 : faktor yang hilang (3 × ? = 12)
+    //  soal 8-9 : perkalian lebih besar (sampai 10)
+    let type;
+    if (round <= 2)      type = 'visual';
+    else if (round <= 4) type = 'plain';
+    else if (round === 5) type = 'story';
+    else if (round <= 7) type = 'missing';
+    else                 type = 'big';
+
+    if (type === 'visual') {
+      const a = randInt(2, 4);
+      const b = randInt(2, 5);
+      const item = pick(ITEMS);
+      return {
+        prompt: 'Berapa banyak semuanya?',
+        visualHTML: groupsVisual(a, b, item),
+        equationHTML: `${a} <span class="op">×</span> ${b} <span class="op">=</span> <span class="qmark">?</span>`,
+        answer: a * b,
+        speech: `${a} kelompok, masing-masing ada ${b}. Berapa ${a} kali ${b}?`
+      };
+    }
+
+    if (type === 'plain') {
+      const a = randInt(2, 9);
+      const b = randInt(2, 9);
+      return {
+        prompt: 'Ayo kalikan!',
+        visualHTML: '',
+        equationHTML: `${a} <span class="op">×</span> ${b} <span class="op">=</span> <span class="qmark">?</span>`,
+        answer: a * b,
+        speech: `Berapa ${a} kali ${b}?`
+      };
+    }
+
+    if (type === 'story') {
+      const a = randInt(2, 5);
+      const b = randInt(2, 6);
+      const item = pick(['kue','apel','bunga','permen','stiker','balon']);
+      return {
+        prompt: `Cece punya ${a} keranjang. Tiap keranjang berisi ${b} ${item}. Berapa ${item} semuanya?`,
+        visualHTML: '',
+        equationHTML: `${a} <span class="op">×</span> ${b} <span class="op">=</span> <span class="qmark">?</span>`,
+        answer: a * b,
+        speech: `Cece punya ${a} keranjang. Tiap keranjang berisi ${b} ${item}. Berapa ${item} semuanya?`
+      };
+    }
+
+    if (type === 'missing') {
+      // a × ? = total
+      const a = randInt(2, 6);
+      const missing = randInt(2, 6);
+      const total = a * missing;
+      return {
+        prompt: 'Cari angka yang hilang!',
+        visualHTML: '',
+        equationHTML:
+          `${a} <span class="op">×</span> <span class="qmark">?</span> ` +
+          `<span class="op">=</span> ${total}`,
+        answer: missing,
+        speech: `${a} kali berapa sama dengan ${total}?`
+      };
+    }
+
+    // big — perkalian sampai 10
+    const a = randInt(6, 10);
+    const b = randInt(4, 10);
+    return {
+      prompt: 'Soal jagoan! Ayo kalikan!',
+      visualHTML: '',
+      equationHTML: `${a} <span class="op">×</span> ${b} <span class="op">=</span> <span class="qmark">?</span>`,
+      answer: a * b,
+      speech: `Berapa ${a} kali ${b}?`
+    };
+  }
+
+  function makeChoices(correct) {
+    // 4 pilihan, pengecoh dekat dengan jawaban
+    const set = new Set([correct]);
+    let tries = 0;
+    while (set.size < 4 && tries < 80) {
+      tries++;
+      const delta = randInt(-6, 6);
+      if (delta === 0) continue;
+      const cand = correct + delta;
+      if (cand >= 0 && cand <= 110) set.add(cand);
+    }
+    let n = 0;
+    while (set.size < 4) { if (n !== correct) set.add(n); n++; }
+    return [...set].sort(() => Math.random() - 0.5);
+  }
+
+  function showRound() {
+    if (round >= TOTAL_ROUNDS) return showEnd();
+    answered = false;
+    currentProblem = makeProblem();
+    roundNumEl.textContent = round + 1;
+    promptEl.textContent = currentProblem.prompt;
+    visualEl.innerHTML = currentProblem.visualHTML;
+    visualEl.style.display = currentProblem.visualHTML ? 'block' : 'none';
+    equationEl.innerHTML = currentProblem.equationHTML;
+    feedbackEl.textContent = '';
+    nextBtn.disabled = true;
+
+    choicesEl.innerHTML = '';
+    const opts = makeChoices(currentProblem.answer);
+    opts.forEach(n => {
+      const b = document.createElement('button');
+      b.className = 'choice';
+      b.textContent = n;
+      b.addEventListener('click', () => onChoice(b, n));
+      choicesEl.appendChild(b);
+    });
+
+    setTimeout(() => speak(currentProblem.speech), 250);
+  }
+
+  function onChoice(btn, value) {
+    if (answered) return;
+    if (value === currentProblem.answer) {
+      answered = true;
+      btn.classList.add('right');
+      stars++;
+      starsEl.textContent = stars;
+      feedbackEl.style.color = '#2e7d32';
+      feedbackEl.textContent = '🌟 Betul sekali! 🌟';
+      nextBtn.disabled = false;
+      choicesEl.querySelectorAll('.choice').forEach(c => c.style.pointerEvents = 'none');
+      burstConfetti();
+      speak(`Hebat! Jawabannya ${value}!`);
+    } else {
+      btn.classList.add('wrong');
+      feedbackEl.style.color = '#d84315';
+      feedbackEl.textContent = '🤔 Coba lagi ya!';
+      setTimeout(() => btn.classList.remove('wrong'), 600);
+      speak('Coba lagi ya!');
+    }
+  }
+
+  function showEnd() {
+    gameArea.style.display = 'none';
+    endScreen.classList.add('show');
+    finalScore.textContent = stars;
+    finalStars.innerHTML = '';
+    for (let i = 0; i < stars; i++) {
+      const s = document.createElement('span');
+      s.className = 'star';
+      s.textContent = '⭐';
+      s.style.animationDelay = (i * 0.15) + 's';
+      finalStars.appendChild(s);
+    }
+    for (let k = 0; k < 4; k++) setTimeout(burstConfetti, k * 400);
+    speak(`Luar biasa! Kamu dapat ${stars} bintang!`);
+  }
+
+  function burstConfetti() {
+    const colors = ['#ff5252','#ffeb3b','#4caf50','#2196f3','#e040fb','#ff9800'];
+    for (let i = 0; i < 30; i++) {
+      const c = document.createElement('div');
+      c.className = 'confetti';
+      c.style.left = Math.random() * 100 + 'vw';
+      c.style.background = colors[i % colors.length];
+      c.style.borderRadius = Math.random() < 0.5 ? '50%' : '2px';
+      c.style.animationDuration = (2 + Math.random() * 2) + 's';
+      document.body.appendChild(c);
+      setTimeout(() => c.remove(), 4000);
+    }
+  }
+
+  listenBtn.addEventListener('click', () => {
+    if (currentProblem) speak(currentProblem.speech);
+  });
+  nextBtn.addEventListener('click', () => {
+    round++;
+    showRound();
+  });
+  restartBtn.addEventListener('click', () => {
+    round = 0;
+    stars = 0;
+    starsEl.textContent = 0;
+    gameArea.style.display = 'block';
+    endScreen.classList.remove('show');
+    showRound();
+  });
+
+  showRound();
+})();
+</script>
+</body>
+</html>

@@ -15,6 +15,7 @@ A little collection of browser games for early learners (age 6 and up). All game
 | 👩‍🍳 Cookie Bakery | Sequencing, following multi-step instructions | [baking-game.html](baking-game.html) |
 | 👨‍👩‍👧‍👦 Bear's Family | Family vocabulary, matching, listening | [family-game.html](family-game.html) |
 | 🌳 Park Snacks | Animal names, what each one eats, matching | [park-game.html](park-game.html) |
+| 👧 Cece Belajar Perkalian | Multiplication (in Bahasa Indonesia), arrays, missing factor | [kali-game.html](kali-game.html) |
 
 ## Tech
 
