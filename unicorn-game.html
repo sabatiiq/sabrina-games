@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Unicorn Cece! 🦄</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    font-family: 'Comic Sans MS', 'Marker Felt', cursive, sans-serif;
+    background: linear-gradient(180deg, #c2e9fb 0%, #fbc2eb 55%, #fde1ff 100%);
+    user-select: none;
+    touch-action: none;
+  }
+  #game {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    cursor: none;
+  }
+  #ground {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 80px;
+    background: linear-gradient(180deg, #b388ff 0%, #7c4dff 100%);
+    border-top: 6px solid #651fff;
+    z-index: 1;
+  }
+  .cloud {
+    position: absolute;
+    background: white;
+    border-radius: 100px;
+    opacity: 0.9;
+  }
+  #hud {
+    position: absolute;
+    top: 16px; left: 0; right: 0;
+    display: flex;
+    justify-content: space-around;
+    z-index: 10;
+    pointer-events: none;
+  }
+  .panel {
+    background: rgba(255,255,255,0.85);
+    border: 4px solid #e040fb;
+    border-radius: 20px;
+    padding: 10px 22px;
+    font-size: clamp(20px, 4vw, 32px);
+    font-weight: bold;
+    color: #6a1b9a;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.1);
+  }
+  .panel .label { font-size: 0.6em; color: #ab47bc; display: block; }
+  #unicorn {
+    position: absolute;
+    bottom: 55px;
+    width: 110px;
+    height: 110px;
+    z-index: 5;
+    font-size: 90px;
+    text-align: center;
+    line-height: 110px;
+    will-change: left;
+    filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.25));
+  }
+  .falling {
+    position: absolute;
+    font-size: 56px;
+    z-index: 3;
+    user-select: none;
+    will-change: transform;
+    filter: drop-shadow(2px 4px 4px rgba(0,0,0,0.2));
+  }
+  .pop {
+    position: absolute;
+    font-size: 40px;
+    font-weight: bold;
+    z-index: 9;
+    pointer-events: none;
+    animation: popUp 0.8s ease-out forwards;
+    color: #e040fb;
+    text-shadow: 2px 2px 0 white, -2px -2px 0 white, 2px -2px 0 white, -2px 2px 0 white;
+  }
+  @keyframes popUp {
+    0%   { transform: translateY(0) scale(0.5); opacity: 1; }
+    100% { transform: translateY(-80px) scale(1.4); opacity: 0; }
+  }
+  #overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(74,20,140,0.55);
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    color: white;
+    text-align: center;
+    padding: 20px;
+  }
+  #overlay h1 {
+    font-size: clamp(38px, 9vw, 84px);
+    color: #fff;
+    text-shadow: 4px 4px 0 #d500f9, 8px 8px 0 rgba(0,0,0,0.2);
+    margin-bottom: 14px;
+  }
+  #overlay p {
+    font-size: clamp(18px, 3.5vw, 28px);
+    margin-bottom: 10px;
+    max-width: 600px;
+    background: rgba(0,0,0,0.25);
+    padding: 10px 20px;
+    border-radius: 16px;
+  }
+  #startBtn {
+    margin-top: 20px;
+    font-family: inherit;
+    font-size: clamp(28px, 6vw, 48px);
+    background: #ffeb3b;
+    color: #6a1b9a;
+    border: 6px solid #fbc02d;
+    border-radius: 30px;
+    padding: 18px 50px;
+    cursor: pointer;
+    box-shadow: 0 6px 0 #f57f17, 0 10px 20px rgba(0,0,0,0.3);
+    transition: transform 0.1s;
+  }
+  #startBtn:hover { transform: scale(1.05); }
+  #startBtn:active { transform: translateY(4px); box-shadow: 0 2px 0 #f57f17; }
+  .hidden { display: none !important; }
+  .hearts { font-size: clamp(22px, 4vw, 30px); letter-spacing: 4px; }
+  #flash {
+    position: absolute;
+    inset: 0;
+    background: #d500f9;
+    opacity: 0;
+    z-index: 15;
+    pointer-events: none;
+  }
+  #flash.show { animation: flashAnim 0.3s; }
+  @keyframes flashAnim {
+    0%, 100% { opacity: 0; }
+    50% { opacity: 0.4; }
+  }
+</style>
+</head>
+<body>
+<div id="game">
+  <div class="cloud" style="top: 8%; left: 10%; width: 120px; height: 40px;"></div>
+  <div class="cloud" style="top: 16%; left: 60%; width: 160px; height: 50px;"></div>
+  <div class="cloud" style="top: 6%; left: 78%; width: 100px; height: 35px;"></div>
+
+  <div id="hud">
+    <div class="panel"><span class="label">Bintang</span><span id="score">0</span></div>
+    <div class="panel"><span class="label">Nyawa</span><span id="lives" class="hearts">💖💖💖</span></div>
+  </div>
+
+  <div id="ground"></div>
+
+  <div id="unicorn">🦄</div>
+
+  <div id="flash"></div>
+
+  <div id="overlay">
+    <h1>🦄 Unicorn Cece! 🌈</h1>
+    <p>Gerakkan unicorn untuk menangkap bintang, pelangi, dan permen ajaib! ⭐🌈🍬</p>
+    <p>Hati-hati awan hujan dan batu ya! 🌧️🪨</p>
+    <p>Pakai tombol ← → , mouse, atau jari kamu!</p>
+    <button id="startBtn">Ayo Main!</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const game     = document.getElementById('game');
+  const unicorn  = document.getElementById('unicorn');
+  const scoreEl  = document.getElementById('score');
+  const livesEl  = document.getElementById('lives');
+  const overlay  = document.getElementById('overlay');
+  const startBtn = document.getElementById('startBtn');
+  const flash    = document.getElementById('flash');
+
+  const GOOD = ['⭐', '🌈', '🍬', '💖', '🌟', '🦋', '🍭'];
+  const BAD  = ['🌧️', '🪨', '☁️'];
+  const UNI_W = 110;
+  const UNI_H = 110;
+
+  let state = {
+    running: false,
+    score: 0,
+    lives: 3,
+    uniX: 0,
+    items: [],
+    spawnTimer: 0,
+    spawnRate: 1100,
+    fallSpeed: 170,  // px / detik
+    lastTime: 0,
+  };
+
+  function getW() { return window.innerWidth;  }
+  function getH() { return window.innerHeight; }
+
+  function speak(text) {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 0.9; u.pitch = 1.3; u.lang = 'id-ID';
+    window.speechSynthesis.speak(u);
+  }
+
+  function placeUnicorn(x) {
+    const w = getW();
+    state.uniX = Math.max(0, Math.min(w - UNI_W, x - UNI_W / 2));
+    unicorn.style.left = state.uniX + 'px';
+  }
+
+  function spawnItem() {
+    const isBad = Math.random() < 0.22;
+    const symbol = isBad
+      ? BAD[Math.floor(Math.random() * BAD.length)]
+      : GOOD[Math.floor(Math.random() * GOOD.length)];
+    const el = document.createElement('div');
+    el.className = 'falling';
+    el.textContent = symbol;
+    const x = Math.random() * (getW() - 56);
+    el.style.left = x + 'px';
+    el.style.top  = '-56px';
+    game.appendChild(el);
+    state.items.push({ el, x, y: -56, bad: isBad, w: 56, h: 56 });
+  }
+
+  function popText(text, x, y, color) {
+    const p = document.createElement('div');
+    p.className = 'pop';
+    p.textContent = text;
+    p.style.left = x + 'px';
+    p.style.top  = y + 'px';
+    if (color) p.style.color = color;
+    game.appendChild(p);
+    setTimeout(() => p.remove(), 800);
+  }
+
+  function updateHud() {
+    scoreEl.textContent = state.score;
+    livesEl.textContent = state.lives > 0 ? '💖'.repeat(state.lives) : '💔';
+  }
+
+  function loseLife(x, y) {
+    state.lives--;
+    updateHud();
+    flash.classList.remove('show');
+    void flash.offsetWidth;
+    flash.classList.add('show');
+    popText('Aduh!', x, y, '#d500f9');
+    if (state.lives <= 0) gameOver();
+  }
+
+  function gameOver() {
+    state.running = false;
+    overlay.classList.remove('hidden');
+    const win = state.score >= 20;
+    overlay.innerHTML = `
+      <h1>${win ? '🎉 Hebat, Cece! 🎉' : '🦄 Coba Lagi Yuk!'}</h1>
+      <p>Kamu mengumpulkan <strong>${state.score}</strong> bintang ajaib! ⭐</p>
+      <button id="startBtn">Main Lagi!</button>
+    `;
+    document.getElementById('startBtn').addEventListener('click', startGame);
+    speak(win ? `Hebat Cece! Kamu dapat ${state.score} bintang!` : 'Coba lagi yuk Cece!');
+  }
+
+  function startGame() {
+    state.running = true;
+    state.score = 0;
+    state.lives = 3;
+    state.items.forEach(i => i.el.remove());
+    state.items = [];
+    state.spawnTimer = 0;
+    state.spawnRate = 1100;
+    state.fallSpeed = 170;
+    state.lastTime = performance.now();
+    updateHud();
+    overlay.classList.add('hidden');
+    placeUnicorn(getW() / 2);
+    requestAnimationFrame(loop);
+  }
+
+  function loop(time) {
+    if (!state.running) return;
+    const dt = Math.min(50, time - state.lastTime);
+    state.lastTime = time;
+
+    state.spawnTimer += dt;
+    if (state.spawnTimer >= state.spawnRate) {
+      state.spawnTimer = 0;
+      spawnItem();
+      // tingkat kesulitan naik perlahan — lembut untuk anak
+      state.spawnRate = Math.max(550, state.spawnRate - 12);
+      state.fallSpeed = Math.min(340, state.fallSpeed + 3);
+    }
+
+    const H = getH();
+    const catchTop   = H - 55 - UNI_H + 30; // bagian atas unicorn
+    const uniLeft    = state.uniX + 8;
+    const uniRight   = state.uniX + UNI_W - 8;
+
+    for (let i = state.items.length - 1; i >= 0; i--) {
+      const it = state.items[i];
+      it.y += state.fallSpeed * dt / 1000;
+      it.el.style.transform = `translateY(${it.y + 56}px)`;
+
+      const itemCx = it.x + it.w / 2;
+      const itemCy = it.y + it.h / 2;
+      if (itemCy >= catchTop && itemCy <= catchTop + 60 &&
+          itemCx >= uniLeft && itemCx <= uniRight) {
+        if (it.bad) {
+          loseLife(it.x, it.y);
+        } else {
+          state.score++;
+          updateHud();
+          popText('+1', it.x, it.y, '#e040fb');
+        }
+        it.el.remove();
+        state.items.splice(i, 1);
+        continue;
+      }
+
+      if (it.y > H) {
+        it.el.remove();
+        state.items.splice(i, 1);
+      }
+    }
+
+    requestAnimationFrame(loop);
+  }
+
+  // input keyboard
+  let keys = { left: false, right: false };
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft' || e.key === 'a')  keys.left  = true;
+    if (e.key === 'ArrowRight'|| e.key === 'd')  keys.right = true;
+  });
+  document.addEventListener('keyup', e => {
+    if (e.key === 'ArrowLeft' || e.key === 'a')  keys.left  = false;
+    if (e.key === 'ArrowRight'|| e.key === 'd')  keys.right = false;
+  });
+  function keyboardMove() {
+    if (state.running) {
+      const speed = 9;
+      let cx = state.uniX + UNI_W / 2;
+      if (keys.left)  cx -= speed;
+      if (keys.right) cx += speed;
+      placeUnicorn(cx);
+    }
+    requestAnimationFrame(keyboardMove);
+  }
+  keyboardMove();
+
+  game.addEventListener('mousemove', e => {
+    if (state.running) placeUnicorn(e.clientX);
+  });
+  game.addEventListener('touchmove', e => {
+    if (state.running && e.touches[0]) {
+      placeUnicorn(e.touches[0].clientX);
+      e.preventDefault();
+    }
+  }, { passive: false });
+  game.addEventListener('touchstart', e => {
+    if (state.running && e.touches[0]) placeUnicorn(e.touches[0].clientX);
+  }, { passive: true });
+
+  window.addEventListener('resize', () => placeUnicorn(state.uniX + UNI_W / 2));
+
+  startBtn.addEventListener('click', startGame);
+  placeUnicorn(getW() / 2);
+})();
+</script>
+</body>
+</html>
