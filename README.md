@@ -17,6 +17,7 @@ A little collection of browser games for early learners (age 6 and up). All game
 | 🌳 Park Snacks | Animal names, what each one eats, matching | [park-game.html](park-game.html) |
 | 👧 Cece Belajar Perkalian | Multiplication (in Bahasa Indonesia), arrays, missing factor | [kali-game.html](kali-game.html) |
 | 🦄 Unicorn Cece | Catch-the-falling-items arcade game (in Bahasa Indonesia), reflexes | [unicorn-game.html](unicorn-game.html) |
+| 🧁 Cupcake Unicorn Cece | Creative cupcake-decorating sandbox (in Bahasa Indonesia) | [cupcake-game.html](cupcake-game.html) |
 
 ## Tech
 
