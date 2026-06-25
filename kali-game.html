@@ -309,35 +309,24 @@
   }
 
   function makeProblem() {
-    // Tingkat kesulitan bertahap:
-    //  soal 0-2 : perkalian kecil dengan gambar kelompok (1-5)
-    //  soal 3-4 : perkalian tanpa gambar (2-9)
-    //  soal 5   : soal cerita
-    //  soal 6-7 : faktor yang hilang (3 × ? = 12)
-    //  soal 8-9 : perkalian lebih besar (sampai 10)
+    // Tingkat kesulitan bertahap (versi lebih susah):
+    //  soal 0-1 : perkalian tabel (3-9 × 3-9)
+    //  soal 2-3 : faktor besar (6-12 × 6-12)
+    //  soal 4   : soal cerita dengan angka lebih besar
+    //  soal 5-6 : faktor yang hilang (sampai 12)
+    //  soal 7-8 : dua angka × satu angka (mis. 14 × 6)
+    //  soal 9   : soal jagoan, angka paling besar
     let type;
-    if (round <= 2)      type = 'visual';
-    else if (round <= 4) type = 'plain';
-    else if (round === 5) type = 'story';
-    else if (round <= 7) type = 'missing';
-    else                 type = 'big';
-
-    if (type === 'visual') {
-      const a = randInt(2, 4);
-      const b = randInt(2, 5);
-      const item = pick(ITEMS);
-      return {
-        prompt: 'Berapa banyak semuanya?',
-        visualHTML: groupsVisual(a, b, item),
-        equationHTML: `${a} <span class="op">×</span> ${b} <span class="op">=</span> <span class="qmark">?</span>`,
-        answer: a * b,
-        speech: `${a} kelompok, masing-masing ada ${b}. Berapa ${a} kali ${b}?`
-      };
-    }
+    if (round <= 1)      type = 'plain';
+    else if (round <= 3) type = 'bigtable';
+    else if (round === 4) type = 'story';
+    else if (round <= 6) type = 'missing';
+    else if (round <= 8) type = 'twodigit';
+    else                 type = 'boss';
 
     if (type === 'plain') {
-      const a = randInt(2, 9);
-      const b = randInt(2, 9);
+      const a = randInt(3, 9);
+      const b = randInt(3, 9);
       return {
         prompt: 'Ayo kalikan!',
         visualHTML: '',
@@ -347,23 +336,35 @@
       };
     }
 
-    if (type === 'story') {
-      const a = randInt(2, 5);
-      const b = randInt(2, 6);
-      const item = pick(['kue','apel','bunga','permen','stiker','balon']);
+    if (type === 'bigtable') {
+      const a = randInt(6, 12);
+      const b = randInt(6, 12);
       return {
-        prompt: `Cece punya ${a} keranjang. Tiap keranjang berisi ${b} ${item}. Berapa ${item} semuanya?`,
+        prompt: 'Kalikan angka besar!',
         visualHTML: '',
         equationHTML: `${a} <span class="op">×</span> ${b} <span class="op">=</span> <span class="qmark">?</span>`,
         answer: a * b,
-        speech: `Cece punya ${a} keranjang. Tiap keranjang berisi ${b} ${item}. Berapa ${item} semuanya?`
+        speech: `Berapa ${a} kali ${b}?`
+      };
+    }
+
+    if (type === 'story') {
+      const a = randInt(4, 8);
+      const b = randInt(5, 9);
+      const item = pick(['kue','apel','bunga','permen','stiker','balon']);
+      return {
+        prompt: `Cece punya ${a} kotak. Tiap kotak berisi ${b} ${item}. Berapa ${item} semuanya?`,
+        visualHTML: '',
+        equationHTML: `${a} <span class="op">×</span> ${b} <span class="op">=</span> <span class="qmark">?</span>`,
+        answer: a * b,
+        speech: `Cece punya ${a} kotak. Tiap kotak berisi ${b} ${item}. Berapa ${item} semuanya?`
       };
     }
 
     if (type === 'missing') {
-      // a × ? = total
-      const a = randInt(2, 6);
-      const missing = randInt(2, 6);
+      // a × ? = total, faktor sampai 12
+      const a = randInt(4, 9);
+      const missing = randInt(4, 12);
       const total = a * missing;
       return {
         prompt: 'Cari angka yang hilang!',
@@ -376,9 +377,22 @@
       };
     }
 
-    // big — perkalian sampai 10
-    const a = randInt(6, 10);
-    const b = randInt(4, 10);
+    if (type === 'twodigit') {
+      // dua angka × satu angka, mis. 14 × 6
+      const a = randInt(11, 25);
+      const b = randInt(3, 7);
+      return {
+        prompt: 'Kalikan angka dua digit!',
+        visualHTML: '',
+        equationHTML: `${a} <span class="op">×</span> ${b} <span class="op">=</span> <span class="qmark">?</span>`,
+        answer: a * b,
+        speech: `Berapa ${a} kali ${b}?`
+      };
+    }
+
+    // boss — angka paling besar
+    const a = randInt(15, 30);
+    const b = randInt(6, 9);
     return {
       prompt: 'Soal jagoan! Ayo kalikan!',
       visualHTML: '',
@@ -389,17 +403,19 @@
   }
 
   function makeChoices(correct) {
-    // 4 pilihan, pengecoh dekat dengan jawaban
+    // 4 pilihan, pengecoh dekat dengan jawaban.
+    // Sebar pengecoh lebih lebar untuk angka besar agar tetap menantang.
+    const spread = Math.max(4, Math.round(correct * 0.18));
     const set = new Set([correct]);
     let tries = 0;
-    while (set.size < 4 && tries < 80) {
+    while (set.size < 4 && tries < 120) {
       tries++;
-      const delta = randInt(-6, 6);
+      const delta = randInt(-spread, spread);
       if (delta === 0) continue;
       const cand = correct + delta;
-      if (cand >= 0 && cand <= 110) set.add(cand);
+      if (cand >= 0) set.add(cand);
     }
-    let n = 0;
+    let n = Math.max(0, correct - 5);
     while (set.size < 4) { if (n !== correct) set.add(n); n++; }
     return [...set].sort(() => Math.random() - 0.5);
   }
