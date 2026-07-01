@@ -449,23 +449,29 @@
 
   function onChoice(btn, value) {
     if (answered) return;
+    // Satu soal hanya boleh dijawab sekali — tidak bisa coba-coba (brute force).
+    answered = true;
+    nextBtn.disabled = false;
+    const allChoices = choicesEl.querySelectorAll('.choice');
+    allChoices.forEach(c => c.style.pointerEvents = 'none');
+
     if (value === currentProblem.answer) {
-      answered = true;
       btn.classList.add('right');
       stars++;
       starsEl.textContent = stars;
       feedbackEl.style.color = '#2e7d32';
       feedbackEl.textContent = '🌟 Betul sekali! 🌟';
-      nextBtn.disabled = false;
-      choicesEl.querySelectorAll('.choice').forEach(c => c.style.pointerEvents = 'none');
       burstConfetti();
       speak(`Hebat! Jawabannya ${value}!`);
     } else {
       btn.classList.add('wrong');
+      // Tunjukkan jawaban yang benar supaya Cece belajar.
+      allChoices.forEach(c => {
+        if (Number(c.textContent) === currentProblem.answer) c.classList.add('right');
+      });
       feedbackEl.style.color = '#d84315';
-      feedbackEl.textContent = '🤔 Coba lagi ya!';
-      setTimeout(() => btn.classList.remove('wrong'), 600);
-      speak('Coba lagi ya!');
+      feedbackEl.textContent = `❌ Belum tepat. Jawabannya ${currentProblem.answer}.`;
+      speak(`Belum tepat ya. Jawaban yang benar ${currentProblem.answer}.`);
     }
   }
 
