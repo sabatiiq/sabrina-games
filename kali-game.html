@@ -286,6 +286,18 @@
   let stars = 0;
   let currentProblem = null;
   let answered = false;
+  const usedKeys = new Set();  // supaya angka soal tidak berulang dalam satu permainan
+
+  // Ambil soal baru yang belum pernah muncul (angkanya selalu ganti).
+  function freshProblem() {
+    let p, tries = 0;
+    do {
+      p = makeProblem();
+      tries++;
+    } while (usedKeys.has(p.equationHTML) && tries < 40);
+    usedKeys.add(p.equationHTML);
+    return p;
+  }
 
   function speak(text) {
     if (!('speechSynthesis' in window)) return;
@@ -425,7 +437,7 @@
   function showRound() {
     if (round >= TOTAL_ROUNDS) return showEnd();
     answered = false;
-    currentProblem = makeProblem();
+    currentProblem = freshProblem();
     roundNumEl.textContent = round + 1;
     promptEl.textContent = currentProblem.prompt;
     visualEl.innerHTML = currentProblem.visualHTML;
@@ -515,6 +527,7 @@
   restartBtn.addEventListener('click', () => {
     round = 0;
     stars = 0;
+    usedKeys.clear();
     starsEl.textContent = 0;
     gameArea.style.display = 'block';
     endScreen.classList.remove('show');
