@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coin Shop! 🪙🛒</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    min-height: 100%;
+    font-family: 'Comic Sans MS', 'Marker Felt', cursive, sans-serif;
+    background: linear-gradient(135deg, #fceabb 0%, #f8b500 55%, #ff8177 100%);
+    user-select: none;
+    color: #4a2f10;
+  }
+  body { padding: 14px 12px 40px; min-height: 100vh; }
+  #app { max-width: 660px; margin: 0 auto; }
+
+  .home {
+    position: fixed; top: 12px; left: 12px; z-index: 20;
+    background: rgba(0,0,0,0.4); color: #fff; padding: 7px 12px;
+    text-decoration: none; border-radius: 12px; font-size: 15px;
+  }
+
+  header { text-align: center; margin-bottom: 8px; }
+  h1 {
+    font-size: clamp(26px, 6.5vw, 46px);
+    color: #fff;
+    text-shadow: 3px 3px 0 #e07b00, 6px 6px 0 rgba(0,0,0,0.15);
+  }
+  .subtitle {
+    font-size: clamp(13px, 3vw, 19px);
+    color: #6d4c1b;
+    background: rgba(255,255,255,0.85);
+    border-radius: 20px; padding: 4px 14px; display: inline-block; margin-top: 4px;
+  }
+
+  #hud { display: flex; justify-content: center; gap: 10px; margin: 8px 0; flex-wrap: wrap; }
+  .chip {
+    background: rgba(255,255,255,0.92); border: 3px solid #f9a825;
+    border-radius: 16px; padding: 5px 14px; font-size: clamp(14px, 3vw, 18px); font-weight: bold;
+  }
+  .badge {
+    display: inline-block; background: #6a1b9a; color: #fff; font-weight: bold;
+    border-radius: 14px; padding: 4px 14px; font-size: clamp(13px, 3vw, 17px); margin: 2px auto 6px;
+  }
+
+  .stage {
+    background: rgba(255,255,255,0.94);
+    border-radius: 22px; padding: 14px 12px 18px;
+    box-shadow: 0 10px 26px rgba(0,0,0,0.18);
+    text-align: center;
+  }
+  #mission { font-size: clamp(16px, 3.7vw, 22px); font-weight: bold; color: #5d4037; margin-bottom: 6px; line-height: 1.4; }
+  #speakBtn { background: #fff3e0; border: 3px solid #ffb74d; border-radius: 16px; font-size: 20px; padding: 3px 12px; cursor: pointer; margin-bottom: 10px; }
+
+  .walletline { font-size: clamp(15px, 3.5vw, 20px); font-weight: bold; margin: 6px 0 10px; }
+  .walletline span { color: #e65100; }
+  .neg { color: #c62828 !important; }
+
+  .shelf { display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .item {
+    background: #fff; border: 3px solid #ffcc80; border-radius: 16px; padding: 8px 4px 6px; cursor: pointer;
+    box-shadow: 0 4px 0 #ffb74d; display: flex; flex-direction: column; align-items: center;
+  }
+  .item:active { transform: translateY(3px); box-shadow: 0 1px 0 #ffb74d; }
+  .item .emo { font-size: clamp(34px, 9vw, 48px); line-height: 1; }
+  .item .tag { margin-top: 4px; background: #fff59d; border-radius: 10px; padding: 1px 8px; font-weight: bold; font-size: clamp(13px, 3vw, 17px); }
+
+  .cart {
+    min-height: 60px; background: #f1f8e9; border: 3px dashed #9ccc65; border-radius: 16px;
+    padding: 8px; margin-bottom: 10px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: center;
+  }
+  .cart .empty { color: #7a8a5a; font-size: clamp(13px, 3vw, 16px); }
+  .citem { background: #fff; border: 2px solid #aed581; border-radius: 12px; padding: 3px 6px; font-size: clamp(20px, 5vw, 26px); cursor: pointer; position: relative; }
+  .citem .x { position: absolute; top: -6px; right: -6px; background: #ef5350; color: #fff; border-radius: 50%; width: 18px; height: 18px; font-size: 12px; display: flex; align-items: center; justify-content: center; }
+
+  .bigbtn {
+    font-family: inherit; font-weight: bold; border-radius: 18px; cursor: pointer; border: 4px solid;
+    font-size: clamp(18px, 4.2vw, 26px); padding: 12px 26px; margin: 4px;
+  }
+  .pay { background: #43a047; color: #fff; border-color: #2e7d32; box-shadow: 0 5px 0 #2e7d32; }
+  .job { background: #ff7043; color: #fff; border-color: #e64a19; box-shadow: 0 5px 0 #d84315; }
+  .opt { background: #fff; color: #4527a0; border-color: #7e57c2; box-shadow: 0 5px 0 #5e35b1; display: block; width: 100%; max-width: 380px; margin: 8px auto; }
+  .bigbtn:active { transform: translateY(3px); box-shadow: none !important; }
+  .bigbtn[disabled] { opacity: 0.4; pointer-events: none; }
+
+  .choicerow { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin: 8px 0; }
+  .cbtn {
+    font-family: inherit; font-weight: bold; font-size: clamp(24px, 6vw, 36px);
+    background: #fff; color: #e65100; border: 4px solid #fb8c00; border-radius: 16px;
+    padding: 10px 20px; cursor: pointer; box-shadow: 0 5px 0 #ef6c00;
+  }
+  .cbtn:active { transform: translateY(3px); box-shadow: 0 2px 0 #ef6c00; }
+
+  .piggy { font-size: clamp(70px, 18vw, 120px); line-height: 1; }
+  .savebar { max-width: 340px; margin: 8px auto; background: #ffe0b2; border-radius: 14px; height: 26px; overflow: hidden; border: 3px solid #fb8c00; }
+  .savefill { height: 100%; background: #66bb6a; width: 0%; transition: width 0.3s; }
+
+  #feedback { min-height: 28px; margin-top: 10px; font-size: clamp(16px, 3.7vw, 22px); font-weight: bold; }
+  #nextBtn { margin-top: 8px; background: #ffca28; color: #4e342e; border: 4px solid #f9a825; box-shadow: 0 5px 0 #f57f17; }
+
+  #overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 30;
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .card {
+    background: #fffaf0; border-radius: 26px; padding: 26px 22px; text-align: center;
+    max-width: 480px; box-shadow: 0 14px 34px rgba(0,0,0,0.4);
+  }
+  .card h2 { font-size: clamp(24px, 6vw, 38px); color: #e65100; margin-bottom: 12px; }
+  .card p { font-size: clamp(15px, 3.4vw, 21px); color: #5d4037; margin-bottom: 8px; line-height: 1.5; }
+  .card button {
+    margin-top: 16px; font-family: inherit; font-size: clamp(19px, 4.4vw, 27px); font-weight: bold;
+    background: #ff7043; color: #fff; border: none; border-radius: 20px; padding: 13px 32px;
+    cursor: pointer; box-shadow: 0 6px 0 #d84315;
+  }
+  .card button:active { transform: translateY(3px); box-shadow: 0 3px 0 #d84315; }
+  .hidden { display: none !important; }
+
+  .confetti { position: fixed; top: -20px; font-size: 22px; z-index: 40; pointer-events: none; }
+  @keyframes fall { to { transform: translateY(105vh) rotate(540deg); opacity: 0.4; } }
+</style>
+</head>
+<body>
+<a class="home" href="index.html">⌂ Home</a>
+<div id="app">
+  <header>
+    <h1>🪙 Coin Shop! 🛒</h1>
+    <div class="subtitle">Learn about money with Sabrina!</div>
+  </header>
+
+  <div id="hud">
+    <div class="chip">⭐ <span id="stars">0</span></div>
+    <div class="chip">Lesson <span id="round">1</span>/7</div>
+  </div>
+
+  <div class="stage">
+    <div style="text-align:center"><span class="badge" id="concept">Money</span></div>
+    <div id="mission">Ready?</div>
+    <button id="speakBtn">🔊 Read it to me</button>
+    <div id="play"></div>
+    <div id="feedback"></div>
+    <button class="bigbtn" id="nextBtn" style="display:none">Next ▶</button>
+  </div>
+</div>
+
+<div id="overlay">
+  <div class="card">
+    <h2>🪙 Coin Shop!</h2>
+    <p>Welcome to your very own shop, Sabrina! You'll learn how money works: prices, adding up coins, staying in your budget, getting change, saving up, and making smart choices.</p>
+    <p>7 little lessons. Let's go shopping! 🛒</p>
+    <button id="startBtn">Start ▶</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const conceptEl = document.getElementById('concept');
+  const missionEl = document.getElementById('mission');
+  const playEl = document.getElementById('play');
+  const feedbackEl = document.getElementById('feedback');
+  const nextBtn = document.getElementById('nextBtn');
+  const starsEl = document.getElementById('stars');
+  const roundEl = document.getElementById('round');
+  const overlay = document.getElementById('overlay');
+  const speakBtn = document.getElementById('speakBtn');
+
+  const ITEMS = {
+    cookie:{e:'🍪',n:'cookie',p:1}, lolly:{e:'🍭',n:'lollipop',p:2}, apple:{e:'🍎',n:'apple',p:3},
+    juice:{e:'🧃',n:'juice',p:3}, banana:{e:'🍌',n:'banana',p:2}, balloon:{e:'🎈',n:'balloon',p:2},
+    book:{e:'📚',n:'book',p:4}, ball:{e:'⚽',n:'ball',p:5}, yoyo:{e:'🪀',n:'yo-yo',p:3},
+    socks:{e:'🧦',n:'socks',p:4}, paints:{e:'🎨',n:'paints',p:6}, cake:{e:'🍰',n:'cake',p:7},
+    teddy:{e:'🧸',n:'teddy',p:8}, crown:{e:'👑',n:'crown',p:10}, bike:{e:'🚲',n:'bike',p:20},
+  };
+  const P = id => ITEMS[id].p;
+  const E = id => ITEMS[id].e;
+  const N = id => ITEMS[id].n;
+  const total = cart => cart.reduce((s, id) => s + P(id), 0);
+
+  const ROUNDS = [
+    { concept:'Money & Prices', type:'buyExact', wallet:5,
+      shelf:['cookie','lolly','apple','balloon'], need:['cookie'],
+      mission:'Everything in a shop has a price. Buy the cookie 🍪 (1 coin), then press PAY.' },
+    { concept:'Adding Up', type:'buyExact', wallet:10,
+      shelf:['apple','juice','banana','book','ball'], need:['apple','juice'],
+      mission:'Buy an apple 🍎 and a juice 🧃. Add the prices together, then PAY.' },
+    { concept:'Budgeting', type:'budget', wallet:10, count:3,
+      shelf:['cookie','lolly','apple','juice','banana','balloon','book','ball'],
+      mission:'Party time! You have 10 coins. Put EXACTLY 3 treats in your cart, but do NOT go over 10 coins.' },
+    { concept:'Making Change', type:'change', wallet:10, need:['ball'], payWith:10,
+      shelf:['ball','book','apple','juice'],
+      mission:'Buy the ball ⚽ (5 coins) and PAY. Then tell me your change from 10 coins.' },
+    { concept:'Afford & Save', type:'decision', wallet:12, big:'bike',
+      mission:'You really want the bike 🚲 — but it costs 20 coins and you only have 12. What should you do?',
+      options:[
+        { t:'🚲 Buy it right now', ok:false, msg:"You can't! The bike costs more coins than you have. 🙅" },
+        { t:'🐷 Save up more coins first', ok:true, msg:'Exactly right! You can only spend what you have — so save up until you have enough. 🐷' },
+      ] },
+    { concept:'Earn & Save', type:'save', goal:10, step:2,
+      mission:'To buy the bike you must SAVE. Do little jobs to earn coins and fill your piggy bank to 10! 🐷' },
+    { concept:'Making Choices', type:'choice', wallet:5,
+      shelf:['cookie','lolly','apple','banana','balloon','yoyo'],
+      mission:'You have 5 coins and can pick just ONE special toy. Choose one, then PAY.' },
+  ];
+
+  const TOTAL = ROUNDS.length;
+  let round = 0, stars = 0, cart = [], saved = 0, done = false;
+
+  function speak(t, rate = 0.95) {
+    if (!('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(t);
+    u.lang = 'en-US'; u.rate = rate; u.pitch = 1.1;
+    speechSynthesis.speak(u);
+  }
+
+  function multisetEqual(a, b) {
+    if (a.length !== b.length) return false;
+    const c = {}; a.forEach(x => c[x] = (c[x]||0)+1);
+    for (const x of b) { if (!c[x]) return false; c[x]--; }
+    return true;
+  }
+
+  function finishRound(msg) {
+    done = true;
+    stars++; starsEl.textContent = stars;
+    feedbackEl.style.color = '#2e7d32';
+    feedbackEl.textContent = msg;
+    speak(msg);
+    burstConfetti();
+    nextBtn.textContent = (round + 1 >= TOTAL) ? '🎉 Finish' : 'Next ▶';
+    nextBtn.style.display = 'inline-block';
+  }
+  function fail(msg) {
+    feedbackEl.style.color = '#c62828';
+    feedbackEl.textContent = msg;
+    speak(msg);
+  }
+
+  // ---------- Renderers ----------
+  function renderShop(R, onPay) {
+    const wrap = document.createElement('div');
+    const wallet = document.createElement('div');
+    wallet.className = 'walletline';
+    wrap.appendChild(wallet);
+
+    const shelf = document.createElement('div'); shelf.className = 'shelf';
+    R.shelf.forEach(id => {
+      const it = document.createElement('div'); it.className = 'item';
+      it.innerHTML = `<span class="emo">${E(id)}</span><span class="tag">🪙 ${P(id)}</span>`;
+      it.addEventListener('click', () => { if (done) return; cart.push(id); refresh(); });
+      shelf.appendChild(it);
+    });
+    wrap.appendChild(shelf);
+
+    const cartBox = document.createElement('div'); cartBox.className = 'cart';
+    wrap.appendChild(cartBox);
+
+    const payBtn = document.createElement('button');
+    payBtn.className = 'bigbtn pay'; payBtn.textContent = '💳 PAY';
+    payBtn.addEventListener('click', () => { if (!done) onPay(); });
+    wrap.appendChild(payBtn);
+
+    function refresh() {
+      const t = total(cart);
+      const left = R.wallet - t;
+      wallet.innerHTML = `You have <span>🪙 ${R.wallet}</span> &nbsp;·&nbsp; Cart: <span>🪙 ${t}</span> &nbsp;·&nbsp; Left: <span class="${left<0?'neg':''}">🪙 ${left}</span>`;
+      cartBox.innerHTML = '';
+      if (cart.length === 0) { cartBox.innerHTML = '<span class="empty">Your cart is empty — tap things to add them!</span>'; return; }
+      cart.forEach((id, i) => {
+        const ci = document.createElement('div'); ci.className = 'citem';
+        ci.innerHTML = `${E(id)}<span class="x">✕</span>`;
+        ci.title = 'Remove';
+        ci.addEventListener('click', () => { if (done) return; cart.splice(i, 1); refresh(); });
+        cartBox.appendChild(ci);
+      });
+    }
+    playEl.appendChild(wrap);
+    refresh();
+    return { refresh };
+  }
+
+  function renderRound() {
+    done = false; cart = []; saved = 0;
+    feedbackEl.textContent = '';
+    nextBtn.style.display = 'none';
+    playEl.innerHTML = '';
+    const R = ROUNDS[round];
+    roundEl.textContent = round + 1;
+    conceptEl.textContent = R.concept;
+    missionEl.textContent = R.mission;
+    setTimeout(() => speak(R.mission), 350);
+
+    if (R.type === 'buyExact') {
+      renderShop(R, () => {
+        const t = total(cart);
+        if (t > R.wallet) return fail(`Oh no! That costs 🪙 ${t} but you only have 🪙 ${R.wallet}.`);
+        if (!multisetEqual(cart, R.need)) return fail(`Check your cart. You need exactly: ${R.need.map(E).join(' ')}`);
+        finishRound(`🌟 Perfect! You paid 🪙 ${t}. 🌟`);
+      });
+
+    } else if (R.type === 'budget') {
+      renderShop(R, () => {
+        const t = total(cart);
+        if (cart.length !== R.count) return fail(`Put exactly ${R.count} treats in your cart. You have ${cart.length}.`);
+        if (t > R.wallet) return fail(`That's 🪙 ${t} — too much! Your budget is 🪙 ${R.wallet}. Swap for something cheaper.`);
+        finishRound(`🌟 Great budgeting! 3 treats for 🪙 ${t}, within your 🪙 ${R.wallet}. 🌟`);
+      });
+
+    } else if (R.type === 'change') {
+      const shop = renderShop(R, () => {
+        const t = total(cart);
+        if (!multisetEqual(cart, R.need)) return fail(`First put just the ${R.need.map(N).join(', ')} in your cart.`);
+        askChange(R, t);
+      });
+
+    } else if (R.type === 'choice') {
+      renderShop(R, () => {
+        const t = total(cart);
+        if (cart.length !== 1) return fail('Pick just ONE toy for this lesson.');
+        if (t > R.wallet) return fail(`That costs 🪙 ${t}, more than your 🪙 ${R.wallet}. Choose a cheaper one.`);
+        finishRound(`🌟 You chose the ${N(cart[0])}! Picking one means giving up the others — that's making a choice. 👍`);
+      });
+
+    } else if (R.type === 'decision') {
+      const big = document.createElement('div');
+      big.style.fontSize = 'clamp(70px,18vw,120px)';
+      big.textContent = E(R.big);
+      playEl.appendChild(big);
+      R.options.forEach(o => {
+        const b = document.createElement('button');
+        b.className = 'bigbtn opt'; b.textContent = o.t;
+        b.addEventListener('click', () => {
+          if (done) return;
+          if (o.ok) finishRound(o.msg); else fail(o.msg);
+        });
+        playEl.appendChild(b);
+      });
+
+    } else if (R.type === 'save') {
+      const piggy = document.createElement('div'); piggy.className = 'piggy'; piggy.textContent = '🐷';
+      const label = document.createElement('div'); label.className = 'walletline';
+      const bar = document.createElement('div'); bar.className = 'savebar';
+      const fill = document.createElement('div'); fill.className = 'savefill'; bar.appendChild(fill);
+      const jobBtn = document.createElement('button'); jobBtn.className = 'bigbtn job'; jobBtn.textContent = '💪 Do a job (+' + R.step + ' coins)';
+      const update = () => {
+        label.innerHTML = `Saved: <span>🪙 ${saved}</span> / 🪙 ${R.goal}`;
+        fill.style.width = Math.min(100, saved / R.goal * 100) + '%';
+      };
+      jobBtn.addEventListener('click', () => {
+        if (done) return;
+        saved += R.step; update();
+        if (saved >= R.goal) { jobBtn.disabled = true; finishRound(`🌟 You saved 🪙 ${saved}! Saving a little at a time gets you big things. 🐷🚲`); }
+        else speak('Good job! Keep saving.');
+      });
+      playEl.appendChild(piggy); playEl.appendChild(label); playEl.appendChild(bar); playEl.appendChild(jobBtn);
+      update();
+    }
+  }
+
+  function askChange(R, spent) {
+    playEl.innerHTML = '';
+    done = true; // shopping part done; now the change question
+    const q = document.createElement('div'); q.className = 'walletline';
+    q.innerHTML = `You paid with 🪙 ${R.payWith} for something that cost 🪙 ${spent}.<br>How much change do you get back?`;
+    playEl.appendChild(q);
+    const correct = R.payWith - spent;
+    const set = new Set([correct]); let d = 1;
+    while (set.size < 4) { if (correct + d <= 20) set.add(correct + d); if (correct - d >= 0) set.add(correct - d); d++; }
+    const opts = [...set].slice(0, 4);
+    for (let i = opts.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [opts[i], opts[j]] = [opts[j], opts[i]]; }
+    const row = document.createElement('div'); row.className = 'choicerow';
+    let answered = false;
+    opts.forEach(v => {
+      const b = document.createElement('button'); b.className = 'cbtn'; b.textContent = '🪙 ' + v;
+      b.addEventListener('click', () => {
+        if (answered) return;
+        if (v === correct) { answered = true; row.querySelectorAll('.cbtn').forEach(x => x.style.pointerEvents = 'none'); finishRound(`🌟 Yes! ${R.payWith} − ${spent} = ${correct}. That's your change! 🌟`); }
+        else fail(`Not quite. Try ${R.payWith} take away ${spent}.`);
+      });
+      row.appendChild(b);
+    });
+    playEl.appendChild(row);
+    speak('How much change do you get back?');
+  }
+
+  nextBtn.addEventListener('click', () => {
+    round++;
+    if (round >= TOTAL) return endGame();
+    renderRound();
+  });
+  speakBtn.addEventListener('click', () => speak(ROUNDS[round].mission));
+
+  function endGame() {
+    overlay.querySelector('.card').innerHTML = `
+      <h2>Shop closed! 🎉🪙</h2>
+      <p>You earned <strong>${stars}</strong> of ${TOTAL} stars.</p>
+      <p>You learned real money smarts: prices, adding up, budgeting, change, saving, and making choices. That's basic economics! 💛</p>
+      <button id="startBtn">Play again ▶</button>`;
+    overlay.classList.remove('hidden');
+    document.getElementById('startBtn').addEventListener('click', start);
+    burstConfetti(); setTimeout(burstConfetti, 300);
+  }
+
+  function start() {
+    overlay.classList.add('hidden');
+    round = 0; stars = 0; starsEl.textContent = 0;
+    renderRound();
+  }
+
+  function burstConfetti() {
+    const emojis = ['🪙','⭐','🎉','💰','🛒','💛','🟡','✨'];
+    for (let i = 0; i < 26; i++) {
+      const c = document.createElement('div');
+      c.className = 'confetti';
+      c.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      c.style.left = Math.random() * 100 + 'vw';
+      c.style.animation = `fall ${1 + Math.random() * 1.4}s linear forwards`;
+      document.body.appendChild(c);
+      setTimeout(() => c.remove(), 2600);
+    }
+  }
+
+  document.getElementById('startBtn').addEventListener('click', start);
+})();
+</script>
+</body>
+</html>
