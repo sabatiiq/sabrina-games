@@ -179,8 +179,10 @@
   const SKY = '#5c94fc';
 
   // Physics — tuned forgiving for a 6yo
-  const GRAVITY    = 0.7;
-  const JUMP_V     = -14.5;
+  // Jump is floaty and strong enough to clear the 3-tall pipe and the
+  // pipe+pit combos with comfortable margin (max rise ~215px > 3 tiles).
+  const GRAVITY    = 0.6;
+  const JUMP_V     = -16.5;
   const MOVE_SPEED = 4.5;
   const FRICTION   = 0.82;
   const MAX_FALL   = 15;
@@ -260,8 +262,8 @@
 
     goombas = [
       { x: 16*T, vx: -0.9, alive: true, minX: 14*T, maxX: 23*T },
-      { x: 28*T, vx:  0.9, alive: true, minX: 26*T, maxX: 38*T },
-      { x: 45*T, vx: -0.9, alive: true, minX: 42*T, maxX: 53*T },
+      { x: 28*T, vx:  0.9, alive: true, minX: 26*T, maxX: 29*T },
+      { x: 45*T, vx: -0.9, alive: true, minX: 42*T, maxX: 49*T },
       { x: 58*T, vx:  0.9, alive: true, minX: 56*T, maxX: 70*T },
     ];
 
