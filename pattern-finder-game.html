@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pattern Finder! 🧩</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    min-height: 100%;
+    font-family: 'Comic Sans MS', 'Marker Felt', cursive, sans-serif;
+    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 55%, #4facfe 100%);
+    user-select: none; color: #103b32;
+  }
+  body { padding: 16px 12px 44px; min-height: 100vh; }
+  #app { max-width: 720px; margin: 0 auto; }
+  .home { position: fixed; top: 12px; left: 12px; z-index: 20; background: rgba(0,0,0,0.4); color: #fff; padding: 7px 12px; text-decoration: none; border-radius: 12px; font-size: 15px; }
+
+  header { text-align: center; margin-bottom: 10px; }
+  h1 { font-size: clamp(28px, 7vw, 50px); color: #fff; text-shadow: 3px 3px 0 #1b9e77, 6px 6px 0 rgba(0,0,0,0.15); }
+  .subtitle { font-size: clamp(13px, 3vw, 19px); color: #0d4f43; background: rgba(255,255,255,0.85); border-radius: 20px; padding: 4px 14px; display: inline-block; margin-top: 4px; }
+
+  #hud { display: flex; justify-content: center; gap: 12px; margin: 10px 0 14px; flex-wrap: wrap; }
+  .chip { background: rgba(255,255,255,0.92); border: 3px solid #26c6a2; border-radius: 18px; padding: 6px 16px; font-size: clamp(14px, 3vw, 19px); font-weight: bold; }
+
+  .stage { background: rgba(255,255,255,0.94); border-radius: 24px; padding: 18px 14px 22px; box-shadow: 0 10px 26px rgba(0,0,0,0.18); text-align: center; }
+  #prompt { font-size: clamp(17px, 4vw, 24px); font-weight: bold; color: #00695c; margin-bottom: 14px; }
+
+  .seq { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; min-height: 90px; margin-bottom: 8px; }
+  .tok {
+    min-width: clamp(48px, 12vw, 68px); height: clamp(52px, 13vw, 72px); padding: 0 8px;
+    display: flex; align-items: center; justify-content: center;
+    background: #e0f7f1; border: 3px solid #26c6a2; border-radius: 14px;
+    font-size: clamp(28px, 7vw, 44px); font-weight: bold; color: #00695c;
+  }
+  .tok.q { background: #fff9c4; border: 3px dashed #fbc02d; color: #f57f17; }
+
+  #speakBtn { background: #e0f2f1; border: 3px solid #4db6ac; border-radius: 16px; font-size: 20px; padding: 4px 14px; cursor: pointer; margin: 4px 0 14px; }
+
+  .choices { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; max-width: 420px; margin: 0 auto; }
+  .choice {
+    font-family: inherit; font-size: clamp(28px, 7vw, 44px); font-weight: bold;
+    padding: 14px 0; border-radius: 18px; cursor: pointer;
+    background: #fff; color: #00695c; border: 4px solid #26a69a; box-shadow: 0 5px 0 #00897b;
+  }
+  .choice:active { transform: translateY(3px); box-shadow: 0 2px 0 #00897b; }
+  .choice.right { background: #a5d6a7; border-color: #2e7d32; box-shadow: 0 5px 0 #2e7d32; }
+  .choice.wrong { background: #ef9a9a; border-color: #c62828; box-shadow: 0 5px 0 #c62828; }
+
+  #feedback { min-height: 30px; font-size: clamp(18px, 4vw, 26px); font-weight: bold; margin-top: 14px; }
+  #nextBtn { margin-top: 12px; font-family: inherit; font-size: clamp(18px, 4vw, 26px); background: #ffca28; border: 4px solid #f9a825; border-radius: 20px; padding: 10px 30px; cursor: pointer; box-shadow: 0 5px 0 #f57f17; color: #4e342e; font-weight: bold; }
+  #nextBtn:active { transform: translateY(3px); box-shadow: 0 2px 0 #f57f17; }
+  #nextBtn[disabled] { opacity: 0.4; pointer-events: none; }
+
+  #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 30; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .card { background: #f2fffb; border-radius: 26px; padding: 28px 22px; text-align: center; max-width: 470px; box-shadow: 0 14px 34px rgba(0,0,0,0.4); }
+  .card h2 { font-size: clamp(26px, 6vw, 40px); color: #00897b; margin-bottom: 12px; }
+  .card p { font-size: clamp(16px, 3.4vw, 22px); color: #37474f; margin-bottom: 8px; line-height: 1.5; }
+  .card button { margin-top: 18px; font-family: inherit; font-size: clamp(20px, 4.4vw, 28px); font-weight: bold; background: #26a69a; color: #fff; border: none; border-radius: 20px; padding: 14px 34px; cursor: pointer; box-shadow: 0 6px 0 #00897b; }
+  .card button:active { transform: translateY(3px); box-shadow: 0 3px 0 #00897b; }
+  .hidden { display: none !important; }
+  .confetti { position: fixed; top: -20px; font-size: 22px; z-index: 40; pointer-events: none; }
+  @keyframes fall { to { transform: translateY(105vh) rotate(540deg); opacity: 0.4; } }
+</style>
+</head>
+<body>
+<a class="home" href="index.html">⌂ Home</a>
+<div id="app">
+  <header>
+    <h1>🧩 Pattern Finder!</h1>
+    <div class="subtitle">Spot the pattern and pick what comes next, Sabrina!</div>
+  </header>
+
+  <div id="hud">
+    <div class="chip">⭐ <span id="stars">0</span></div>
+    <div class="chip">Round <span id="round">1</span>/10</div>
+  </div>
+
+  <div class="stage">
+    <div id="prompt">What comes next?</div>
+    <div class="seq" id="seq"></div>
+    <button id="speakBtn">🔊 Read the pattern</button>
+    <div class="choices" id="choices"></div>
+    <div id="feedback"></div>
+    <button id="nextBtn" disabled>Next ▶</button>
+  </div>
+</div>
+
+<div id="overlay">
+  <div class="card">
+    <h2>🧩 Pattern Finder!</h2>
+    <p>Look at the row of pictures or numbers. Each one follows a secret pattern. Figure out the rule, then pick what comes next where you see the <strong>?</strong></p>
+    <p>Finding patterns is how coders and mathematicians think! 10 rounds. Ready, Sabrina? 💚</p>
+    <button id="startBtn">Start ▶</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const seqEl = document.getElementById('seq');
+  const choicesEl = document.getElementById('choices');
+  const promptEl = document.getElementById('prompt');
+  const feedbackEl = document.getElementById('feedback');
+  const nextBtn = document.getElementById('nextBtn');
+  const starsEl = document.getElementById('stars');
+  const roundEl = document.getElementById('round');
+  const overlay = document.getElementById('overlay');
+  const speakBtn = document.getElementById('speakBtn');
+
+  const SYM = ['🔴','🔵','🟡','🟢','🟣','🟠','⭐','❤️','🍎','🍌','🌙','☀️','🐱','🐶','🌸','🦋'];
+  const rand = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
+  const pick = arr => arr[rand(0, arr.length - 1)];
+  const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const twoSyms = () => { const a = pick(SYM); let b; do { b = pick(SYM); } while (b === a); return [a, b]; };
+  const threeSyms = () => { const s = new Set(); while (s.size < 3) s.add(pick(SYM)); return [...s]; };
+
+  function emojiPattern(unit) {
+    const showCount = unit.length * 2 + rand(0, unit.length - 1);
+    const seq = [];
+    for (let i = 0; i < showCount; i++) seq.push(unit[i % unit.length]);
+    const answer = unit[showCount % unit.length];
+    const set = new Set([answer, ...unit]);
+    while (set.size < 4) set.add(pick(SYM));
+    return { seq, answer, choices: shuffle([...set]).slice(0, 4), isNum: false };
+  }
+  function numberPattern(step) {
+    const begin = step === 1 ? rand(1, 9) : step === 2 ? rand(1, 6) : step === 5 ? rand(1, 4) * 5 : rand(1, 3) * 10;
+    const seq = []; let v = begin;
+    for (let i = 0; i < 5; i++) { seq.push(v); v += step; }
+    const answer = v;
+    const set = new Set([answer]);
+    [answer + step, answer - step, answer + 1, answer - 1, answer + step * 2].forEach(x => { if (x >= 0) set.add(x); });
+    let choices = shuffle([...set]).slice(0, 4);
+    if (!choices.includes(answer)) choices[0] = answer;
+    return { seq, answer, choices: shuffle(choices), isNum: true };
+  }
+
+  const GENS = [
+    () => emojiPattern(twoSyms()),                              // A B
+    () => { const [a, b] = twoSyms(); return emojiPattern([a, a, b]); },  // A A B
+    () => emojiPattern(threeSyms()),                           // A B C
+    () => numberPattern(1),                                    // count by 1
+    () => { const [a, b] = twoSyms(); return emojiPattern([a, b, b]); },  // A B B
+    () => numberPattern(2),                                    // count by 2
+    () => { const [a, b] = twoSyms(); return emojiPattern([a, a, b, b]); }, // A A B B
+    () => numberPattern(5),                                    // count by 5
+    () => emojiPattern(threeSyms()),                           // A B C
+    () => numberPattern(10),                                   // count by 10
+  ];
+
+  const TOTAL = GENS.length;
+  let round = 0, stars = 0, answered = false, current = null;
+
+  function speak(text, rate = 0.9) {
+    if (!('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text); u.lang = 'en-US'; u.rate = rate; u.pitch = 1.1;
+    speechSynthesis.speak(u);
+  }
+  const spoken = t => (t === '?' ? 'what' : String(t));
+
+  function showRound() {
+    answered = false;
+    nextBtn.disabled = true;
+    feedbackEl.textContent = '';
+    roundEl.textContent = round + 1;
+    current = GENS[round]();
+    promptEl.textContent = current.isNum ? 'What number comes next?' : 'What comes next?';
+
+    seqEl.innerHTML = '';
+    current.seq.forEach(t => { const d = document.createElement('div'); d.className = 'tok'; d.textContent = t; seqEl.appendChild(d); });
+    const q = document.createElement('div'); q.className = 'tok q'; q.textContent = '?'; seqEl.appendChild(q);
+
+    choicesEl.innerHTML = '';
+    current.choices.forEach(v => {
+      const b = document.createElement('button'); b.className = 'choice'; b.textContent = v;
+      b.addEventListener('click', () => onChoice(b, v));
+      choicesEl.appendChild(b);
+    });
+    setTimeout(() => speak(current.isNum ? 'What number comes next?' : 'What comes next?'), 300);
+  }
+
+  function onChoice(btn, value) {
+    if (answered) return;
+    answered = true;
+    nextBtn.disabled = false;
+    choicesEl.querySelectorAll('.choice').forEach(c => c.style.pointerEvents = 'none');
+    if (value === current.answer) {
+      btn.classList.add('right');
+      stars++; starsEl.textContent = stars;
+      feedbackEl.style.color = '#2e7d32';
+      feedbackEl.textContent = '🌟 You found the pattern! 🌟';
+      burstConfetti();
+      speak('Yes! That comes next!');
+    } else {
+      btn.classList.add('wrong');
+      choicesEl.querySelectorAll('.choice').forEach(c => { if (c.textContent === String(current.answer)) c.classList.add('right'); });
+      feedbackEl.style.color = '#c62828';
+      feedbackEl.textContent = `Not quite — it was ${current.answer}.`;
+      speak('Not quite. Look at the pattern again.');
+    }
+  }
+
+  nextBtn.addEventListener('click', () => { round++; if (round >= TOTAL) return endGame(); showRound(); });
+  speakBtn.addEventListener('click', () => {
+    if (!current) return;
+    speak(current.seq.map(spoken).join(', ') + ', what comes next?');
+  });
+
+  function endGame() {
+    const msg = stars >= 9 ? 'PATTERN MASTER! 🌟' : stars >= 6 ? 'Great pattern spotting! 💪' : 'Nice try — play again to find more patterns! 💚';
+    overlay.querySelector('.card').innerHTML = `
+      <h2>All done! 🎉</h2>
+      <p>You earned <strong>${stars}</strong> out of ${TOTAL} stars.</p>
+      <p>${msg}</p>
+      <button id="startBtn">Play again ▶</button>`;
+    overlay.classList.remove('hidden');
+    document.getElementById('startBtn').addEventListener('click', start);
+    burstConfetti(); setTimeout(burstConfetti, 300);
+  }
+
+  function start() {
+    overlay.classList.add('hidden');
+    round = 0; stars = 0; starsEl.textContent = 0;
+    showRound();
+  }
+
+  function burstConfetti() {
+    const emojis = ['⭐','🎉','🧩','💚','💙','✨','🔵','🟢'];
+    for (let i = 0; i < 26; i++) {
+      const c = document.createElement('div'); c.className = 'confetti';
+      c.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      c.style.left = Math.random() * 100 + 'vw';
+      c.style.animation = `fall ${1 + Math.random() * 1.4}s linear forwards`;
+      document.body.appendChild(c); setTimeout(() => c.remove(), 2600);
+    }
+  }
+
+  document.getElementById('startBtn').addEventListener('click', start);
+})();
+</script>
+</body>
+</html>

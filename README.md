@@ -22,6 +22,8 @@ A little collection of browser games for early learners (age 6 and up). All game
 | 🔤 Alpha Blocks | Phonics & spelling — missing letter and spell-the-word (medium) | [alpha-blocks-game.html](alpha-blocks-game.html) |
 | 🤖 Robot Coder | Programming logic for kids — sequence arrow commands to guide a robot to the goal (ages 6+) | [robot-coder-game.html](robot-coder-game.html) |
 | 🪙 Coin Shop | Basic economics — prices, adding up, budgeting, making change, saving, and choices (ages 6+) | [coin-shop-game.html](coin-shop-game.html) |
+| 🔁 Loop Coder | Programming loops — build a short plan and repeat it to collect all gems (ages 6+) | [loop-coder-game.html](loop-coder-game.html) |
+| 🧩 Pattern Finder | Pattern & sequence logic — spot the rule and pick what comes next (ages 6+) | [pattern-finder-game.html](pattern-finder-game.html) |
 
 ## Tech
 
