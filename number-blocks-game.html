@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Number Blocks! 🧮</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    min-height: 100%;
+    font-family: 'Comic Sans MS', 'Marker Felt', cursive, sans-serif;
+    background: linear-gradient(135deg, #ffe29f 0%, #ffa99f 45%, #ff719a 100%);
+    user-select: none;
+    color: #3a2b12;
+  }
+  body { padding: 16px 14px 50px; min-height: 100vh; }
+  #app { max-width: 760px; margin: 0 auto; }
+
+  .home {
+    position: fixed; top: 12px; left: 12px; z-index: 20;
+    background: rgba(0,0,0,0.4); color: #fff; padding: 7px 12px;
+    text-decoration: none; border-radius: 12px; font-size: 15px;
+  }
+
+  header { text-align: center; margin-bottom: 14px; }
+  h1 {
+    font-size: clamp(30px, 7vw, 52px);
+    color: #fff;
+    text-shadow: 3px 3px 0 #e65100, 6px 6px 0 rgba(0,0,0,0.15);
+  }
+  .subtitle {
+    font-size: clamp(14px, 3vw, 20px);
+    color: #4e342e;
+    background: rgba(255,255,255,0.8);
+    border-radius: 20px; padding: 5px 16px; display: inline-block; margin-top: 6px;
+  }
+
+  #hud {
+    display: flex; justify-content: center; gap: 12px; margin: 10px 0 14px; flex-wrap: wrap;
+  }
+  .chip {
+    background: rgba(255,255,255,0.9); border: 3px solid #ff8a65;
+    border-radius: 18px; padding: 6px 16px; font-size: clamp(15px, 3vw, 20px); font-weight: bold;
+  }
+
+  .stage {
+    background: rgba(255,255,255,0.92);
+    border-radius: 24px; padding: 18px 14px 22px;
+    box-shadow: 0 10px 26px rgba(0,0,0,0.18);
+    text-align: center;
+  }
+
+  #figure {
+    display: flex; align-items: flex-end; justify-content: center;
+    gap: 22px; flex-wrap: wrap; min-height: 190px; margin-bottom: 6px;
+  }
+  .nb { display: flex; align-items: flex-end; gap: 4px; }
+  .nb-col { display: flex; flex-direction: column-reverse; gap: 4px; }
+  .cube {
+    width: clamp(30px, 8vw, 48px); height: clamp(30px, 8vw, 48px);
+    border-radius: 8px;
+    box-shadow: inset 0 -6px 0 rgba(0,0,0,0.18), inset 0 4px 0 rgba(255,255,255,0.35), 0 2px 3px rgba(0,0,0,0.2);
+    position: relative;
+  }
+  .cube.face { display: flex; align-items: center; justify-content: center; gap: 18%; }
+  .cube .eye {
+    width: 22%; height: 22%; background: #fff; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 0 2px rgba(0,0,0,0.15);
+  }
+  .cube .eye::after { content: ''; width: 45%; height: 45%; background: #222; border-radius: 50%; }
+  .cube.ghost { opacity: 0.28; border: 2px dashed #7a5; box-shadow: none; }
+
+  .op { font-size: clamp(40px, 10vw, 66px); font-weight: bold; color: #e65100; align-self: center; }
+
+  #question {
+    font-size: clamp(20px, 4.6vw, 30px); font-weight: bold; margin: 8px 0 4px; color: #5d4037;
+  }
+  #speakBtn {
+    background: #fff3e0; border: 3px solid #ffb74d; border-radius: 16px;
+    font-size: 22px; padding: 4px 14px; cursor: pointer; margin-bottom: 10px;
+  }
+
+  #choices {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; max-width: 420px; margin: 6px auto 0;
+  }
+  .choice {
+    font-family: inherit; font-size: clamp(26px, 6vw, 40px); font-weight: bold;
+    padding: 16px 0; border-radius: 18px; cursor: pointer;
+    background: #fff; color: #4527a0; border: 4px solid #7e57c2;
+    box-shadow: 0 5px 0 #5e35b1; transition: transform 0.08s;
+  }
+  .choice:active { transform: translateY(3px); box-shadow: 0 2px 0 #5e35b1; }
+  .choice.right { background: #a5d6a7; border-color: #2e7d32; box-shadow: 0 5px 0 #2e7d32; color: #1b5e20; }
+  .choice.wrong { background: #ef9a9a; border-color: #c62828; box-shadow: 0 5px 0 #c62828; color: #b71c1c; }
+
+  #feedback { min-height: 30px; font-size: clamp(18px, 4vw, 26px); font-weight: bold; margin-top: 12px; }
+
+  #nextBtn {
+    margin-top: 12px; font-family: inherit; font-size: clamp(18px, 4vw, 26px);
+    background: #ffca28; border: 4px solid #f9a825; border-radius: 20px;
+    padding: 10px 30px; cursor: pointer; box-shadow: 0 5px 0 #f57f17; color: #4e342e; font-weight: bold;
+  }
+  #nextBtn:active { transform: translateY(3px); box-shadow: 0 2px 0 #f57f17; }
+  #nextBtn[disabled] { opacity: 0.4; pointer-events: none; }
+
+  #overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 30;
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .card {
+    background: #fffbf3; border-radius: 26px; padding: 28px 22px; text-align: center;
+    max-width: 460px; box-shadow: 0 14px 34px rgba(0,0,0,0.4);
+  }
+  .card h2 { font-size: clamp(26px, 6vw, 40px); color: #e65100; margin-bottom: 12px; }
+  .card p { font-size: clamp(16px, 3.4vw, 22px); color: #5d4037; margin-bottom: 8px; line-height: 1.5; }
+  .card button {
+    margin-top: 18px; font-family: inherit; font-size: clamp(20px, 4.4vw, 28px); font-weight: bold;
+    background: #ff7043; color: #fff; border: none; border-radius: 20px; padding: 14px 34px;
+    cursor: pointer; box-shadow: 0 6px 0 #d84315;
+  }
+  .card button:active { transform: translateY(3px); box-shadow: 0 3px 0 #d84315; }
+  .hidden { display: none !important; }
+
+  .confetti { position: fixed; top: -20px; font-size: 22px; z-index: 40; pointer-events: none; }
+  @keyframes fall { to { transform: translateY(105vh) rotate(540deg); opacity: 0.4; } }
+</style>
+</head>
+<body>
+<a class="home" href="index.html">⌂ Home</a>
+<div id="app">
+  <header>
+    <h1>🧮 Number Blocks!</h1>
+    <div class="subtitle">Count, add, and build with blocks, Sabrina!</div>
+  </header>
+
+  <div id="hud">
+    <div class="chip">⭐ <span id="stars">0</span></div>
+    <div class="chip">Round <span id="round">1</span>/10</div>
+  </div>
+
+  <div class="stage">
+    <div id="figure"></div>
+    <div id="question">Ready?</div>
+    <button id="speakBtn">🔊 Say it again</button>
+    <div id="choices"></div>
+    <div id="feedback"></div>
+    <button id="nextBtn" disabled>Next ▶</button>
+  </div>
+</div>
+
+<div id="overlay">
+  <div class="card">
+    <h2>🧮 Number Blocks!</h2>
+    <p>Meet the Number Blocks! Count how many cubes make each one, add them up, double them, and find what comes next.</p>
+    <p>10 rounds — medium level. Good luck, Sabrina! 💛</p>
+    <button id="startBtn">Start ▶</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const figure = document.getElementById('figure');
+  const questionEl = document.getElementById('question');
+  const choicesEl = document.getElementById('choices');
+  const feedbackEl = document.getElementById('feedback');
+  const nextBtn = document.getElementById('nextBtn');
+  const starsEl = document.getElementById('stars');
+  const roundEl = document.getElementById('round');
+  const overlay = document.getElementById('overlay');
+  const speakBtn = document.getElementById('speakBtn');
+
+  const TOTAL = 10;
+  let round = 0, stars = 0, answered = false, current = null;
+
+  const NUMCOLORS = {
+    1:'#ff3b3b', 2:'#ff9d2e', 3:'#ffd93b', 4:'#3ec93a', 5:'#2f7bff',
+    6:'#a24bff', 7:'#ff5ea8', 8:'#00bcd4', 9:'#7e57c2', 10:'#26a69a'
+  };
+  const numColor = n => NUMCOLORS[((n - 1) % 10) + 1];
+
+  const rand = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
+
+  // ---- Speech ----
+  function speak(text) {
+    if (!('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US'; u.rate = 0.95; u.pitch = 1.1;
+    speechSynthesis.speak(u);
+  }
+
+  // ---- Block rendering ----
+  function buildBlock(n, ghostCount = 0) {
+    const wrap = document.createElement('div');
+    wrap.className = 'nb';
+    const color = numColor(n);
+    const cols = Math.max(1, Math.ceil(n / 5));
+    let remaining = n;
+    const allCubes = [];
+    for (let c = 0; c < cols; c++) {
+      const col = document.createElement('div');
+      col.className = 'nb-col';
+      const h = Math.min(5, remaining);
+      remaining -= h;
+      for (let i = 0; i < h; i++) {
+        const cube = document.createElement('div');
+        cube.className = 'cube';
+        cube.style.background = color;
+        col.appendChild(cube);
+        allCubes.push(cube);
+      }
+      wrap.appendChild(col);
+    }
+    // Face on the very top cube of the first column (last child = top, since column-reverse)
+    const firstCol = wrap.firstChild;
+    const topCube = firstCol.lastChild;
+    topCube.classList.add('face');
+    topCube.innerHTML = '<div class="eye"></div><div class="eye"></div>';
+    // Ghost the top-most cubes to show "taken away"
+    if (ghostCount > 0) {
+      const ghosts = allCubes.slice(-ghostCount);
+      ghosts.forEach(c => { c.classList.add('ghost'); c.innerHTML = ''; c.classList.remove('face'); });
+    }
+    return wrap;
+  }
+
+  function opSpan(sym) {
+    const s = document.createElement('div');
+    s.className = 'op';
+    s.textContent = sym;
+    return s;
+  }
+
+  function renderFigure(display) {
+    figure.innerHTML = '';
+    if (display.mode === 'one') {
+      figure.appendChild(buildBlock(display.n, display.ghost || 0));
+    } else if (display.mode === 'two') {
+      figure.appendChild(buildBlock(display.a));
+      figure.appendChild(opSpan(display.op || '+'));
+      figure.appendChild(buildBlock(display.b));
+    }
+  }
+
+  // ---- Problem generators ----
+  function count(lo, hi) {
+    const n = rand(lo, hi);
+    return { answer: n, q: `How many cubes make this Number Block?`, say: 'How many cubes make this Number Block?', display: { mode: 'one', n } };
+  }
+  function add(alo, ahi, blo, bhi, cap) {
+    let a, b;
+    do { a = rand(alo, ahi); b = rand(blo, bhi); } while (a + b > cap);
+    return { answer: a + b, q: `What is ${a} + ${b}?`, say: `What is ${a} plus ${b}?`, display: { mode: 'two', a, b, op: '+' } };
+  }
+  function sub(alo, ahi, blo, bhi) {
+    const a = rand(alo, ahi);
+    const b = rand(blo, Math.min(bhi, a - 1));
+    return { answer: a - b, q: `${a} − ${b} = ?`, say: `What is ${a} take away ${b}?`, display: { mode: 'one', n: a, ghost: b } };
+  }
+  function next(lo, hi) {
+    const n = rand(lo, hi);
+    return { answer: n + 1, q: `Which number comes next after ${n}?`, say: `Which number comes next after ${n}?`, display: { mode: 'one', n } };
+  }
+  function oneLess(lo, hi) {
+    const n = rand(lo, hi);
+    return { answer: n - 1, q: `What is one less than ${n}?`, say: `What is one less than ${n}?`, display: { mode: 'one', n } };
+  }
+  function dbl(lo, hi) {
+    const n = rand(lo, hi);
+    return { answer: n * 2, q: `What is double ${n}?  (${n} + ${n})`, say: `What is double ${n}?`, display: { mode: 'two', a: n, b: n, op: '+' } };
+  }
+
+  const ROUNDS = [
+    () => count(5, 9),
+    () => add(2, 6, 2, 6, 12),
+    () => next(5, 14),
+    () => oneLess(6, 15),
+    () => add(3, 8, 3, 8, 15),
+    () => count(10, 15),
+    () => dbl(2, 9),
+    () => sub(8, 18, 2, 7),
+    () => add(6, 12, 4, 9, 20),
+    () => sub(14, 20, 3, 9),
+  ];
+
+  function makeChoices(correct) {
+    const set = new Set([correct]);
+    const spread = Math.max(2, Math.round(correct * 0.45));
+    let guard = 0;
+    while (set.size < 4 && guard++ < 100) {
+      const d = correct + rand(-spread, spread);
+      if (d >= 0 && d !== correct) set.add(d);
+    }
+    // top up if needed
+    let extra = correct + 1;
+    while (set.size < 4) { if (extra !== correct && extra >= 0) set.add(extra); extra++; }
+    const arr = [...set];
+    for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; }
+    return arr;
+  }
+
+  function showRound() {
+    answered = false;
+    nextBtn.disabled = true;
+    feedbackEl.textContent = '';
+    roundEl.textContent = round + 1;
+    current = ROUNDS[round]();
+    renderFigure(current.display);
+    questionEl.textContent = current.q;
+    choicesEl.innerHTML = '';
+    makeChoices(current.answer).forEach(v => {
+      const b = document.createElement('button');
+      b.className = 'choice';
+      b.textContent = v;
+      b.addEventListener('click', () => onChoice(b, v));
+      choicesEl.appendChild(b);
+    });
+    setTimeout(() => speak(current.say), 350);
+  }
+
+  function onChoice(btn, value) {
+    if (answered) return;
+    answered = true;
+    nextBtn.disabled = false;
+    choicesEl.querySelectorAll('.choice').forEach(c => c.style.pointerEvents = 'none');
+    if (value === current.answer) {
+      btn.classList.add('right');
+      stars++; starsEl.textContent = stars;
+      feedbackEl.style.color = '#2e7d32';
+      feedbackEl.textContent = '🌟 That\'s right! 🌟';
+      burstConfetti();
+      speak(`Yes! The answer is ${value}!`);
+    } else {
+      btn.classList.add('wrong');
+      choicesEl.querySelectorAll('.choice').forEach(c => {
+        if (Number(c.textContent) === current.answer) c.classList.add('right');
+      });
+      feedbackEl.style.color = '#c62828';
+      feedbackEl.textContent = `Almost! The answer is ${current.answer}.`;
+      speak(`Not quite. The answer is ${current.answer}.`);
+    }
+  }
+
+  nextBtn.addEventListener('click', () => {
+    round++;
+    if (round >= TOTAL) return endGame();
+    showRound();
+  });
+
+  speakBtn.addEventListener('click', () => { if (current) speak(current.say); });
+
+  function endGame() {
+    const msg = stars >= 9 ? 'AMAZING! You are a Number Blocks star! 🌟'
+              : stars >= 6 ? 'Great counting! 💪'
+              : 'Good try — play again to collect more stars! 💛';
+    overlay.querySelector('.card').innerHTML = `
+      <h2>All done! 🎉</h2>
+      <p>You earned <strong>${stars}</strong> out of ${TOTAL} stars.</p>
+      <p>${msg}</p>
+      <button id="startBtn">Play again ▶</button>`;
+    overlay.classList.remove('hidden');
+    document.getElementById('startBtn').addEventListener('click', start);
+    burstConfetti(); setTimeout(burstConfetti, 300);
+  }
+
+  function start() {
+    overlay.classList.add('hidden');
+    round = 0; stars = 0;
+    starsEl.textContent = 0;
+    showRound();
+  }
+
+  function burstConfetti() {
+    const emojis = ['⭐','🎉','🟥','🟧','🟨','🟩','🟦','🟪','💛'];
+    for (let i = 0; i < 26; i++) {
+      const c = document.createElement('div');
+      c.className = 'confetti';
+      c.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      c.style.left = Math.random() * 100 + 'vw';
+      c.style.animation = `fall ${1 + Math.random() * 1.4}s linear forwards`;
+      document.body.appendChild(c);
+      setTimeout(() => c.remove(), 2600);
+    }
+  }
+
+  document.getElementById('startBtn').addEventListener('click', start);
+})();
+</script>
+</body>
+</html>

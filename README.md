@@ -18,6 +18,8 @@ A little collection of browser games for early learners (age 6 and up). All game
 | 👧 Cece Belajar Perkalian | Multiplication (in Bahasa Indonesia), arrays, missing factor | [kali-game.html](kali-game.html) |
 | 🦄 Unicorn Cece | Catch-the-falling-items arcade game (in Bahasa Indonesia), reflexes | [unicorn-game.html](unicorn-game.html) |
 | 🧁 Cupcake Unicorn Cece | Creative cupcake-decorating sandbox (in Bahasa Indonesia) | [cupcake-game.html](cupcake-game.html) |
+| 🧮 Number Blocks | Counting, addition, subtraction, doubling, next number (medium) | [number-blocks-game.html](number-blocks-game.html) |
+| 🔤 Alpha Blocks | Phonics & spelling — missing letter and spell-the-word (medium) | [alpha-blocks-game.html](alpha-blocks-game.html) |
 
 ## Tech
 

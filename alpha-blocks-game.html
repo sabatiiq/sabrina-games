@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alpha Blocks! 🔤</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    min-height: 100%;
+    font-family: 'Comic Sans MS', 'Marker Felt', cursive, sans-serif;
+    background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 45%, #d4a5ff 100%);
+    user-select: none;
+    color: #21324e;
+  }
+  body { padding: 16px 14px 50px; min-height: 100vh; }
+  #app { max-width: 780px; margin: 0 auto; }
+
+  .home {
+    position: fixed; top: 12px; left: 12px; z-index: 20;
+    background: rgba(0,0,0,0.4); color: #fff; padding: 7px 12px;
+    text-decoration: none; border-radius: 12px; font-size: 15px;
+  }
+
+  header { text-align: center; margin-bottom: 14px; }
+  h1 {
+    font-size: clamp(30px, 7vw, 52px);
+    color: #fff;
+    text-shadow: 3px 3px 0 #3949ab, 6px 6px 0 rgba(0,0,0,0.15);
+  }
+  .subtitle {
+    font-size: clamp(14px, 3vw, 20px);
+    color: #283593;
+    background: rgba(255,255,255,0.82);
+    border-radius: 20px; padding: 5px 16px; display: inline-block; margin-top: 6px;
+  }
+
+  #hud { display: flex; justify-content: center; gap: 12px; margin: 10px 0 14px; flex-wrap: wrap; }
+  .chip {
+    background: rgba(255,255,255,0.9); border: 3px solid #7986cb;
+    border-radius: 18px; padding: 6px 16px; font-size: clamp(15px, 3vw, 20px); font-weight: bold;
+  }
+
+  .stage {
+    background: rgba(255,255,255,0.92);
+    border-radius: 24px; padding: 18px 14px 22px;
+    box-shadow: 0 10px 26px rgba(0,0,0,0.18);
+    text-align: center;
+  }
+
+  #picture { font-size: clamp(70px, 17vw, 120px); line-height: 1.1; margin-bottom: 4px; }
+  #prompt { font-size: clamp(18px, 4.2vw, 26px); font-weight: bold; color: #303f9f; margin-bottom: 10px; }
+
+  #speakBtn {
+    background: #e8eaf6; border: 3px solid #9fa8da; border-radius: 16px;
+    font-size: 22px; padding: 4px 14px; cursor: pointer; margin-bottom: 12px;
+  }
+
+  .word-row, .tray {
+    display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 10px 0;
+  }
+  .lb {
+    width: clamp(46px, 12vw, 66px); height: clamp(52px, 13.5vw, 74px);
+    border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-size: clamp(26px, 7vw, 40px); font-weight: bold; color: #fff; text-transform: uppercase;
+    box-shadow: inset 0 -7px 0 rgba(0,0,0,0.2), inset 0 5px 0 rgba(255,255,255,0.3), 0 3px 4px rgba(0,0,0,0.2);
+    position: relative;
+  }
+  .lb .eyes { position: absolute; top: 6px; display: flex; gap: 20%; width: 60%; justify-content: center; }
+  .lb .eyes i { width: 9px; height: 9px; background: #fff; border-radius: 50%; box-shadow: 0 0 0 2px rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center; }
+  .lb .eyes i::after { content: ''; width: 4px; height: 4px; background: #222; border-radius: 50%; }
+  .lb .ch { margin-top: 10px; }
+
+  .slot {
+    width: clamp(46px, 12vw, 66px); height: clamp(52px, 13.5vw, 74px);
+    border-radius: 12px; border: 3px dashed #7986cb; background: rgba(121,134,203,0.12);
+    display: flex; align-items: center; justify-content: center;
+    font-size: clamp(26px, 7vw, 40px); font-weight: bold; text-transform: uppercase; color: #3949ab;
+  }
+  .slot.filled { border-style: solid; }
+
+  .tray .lb { cursor: pointer; transition: transform 0.08s; }
+  .tray .lb:active { transform: translateY(3px); }
+  .tray .lb.used { opacity: 0.25; pointer-events: none; }
+  .shake { animation: shake 0.4s; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-7px)} 40%{transform:translateX(7px)} 60%{transform:translateX(-5px)} 80%{transform:translateX(5px)} }
+
+  .choice-lb { cursor: pointer; transition: transform 0.08s; }
+  .choice-lb:active { transform: translateY(3px); }
+  .choice-lb.wrong { filter: grayscale(0.7); opacity: 0.4; pointer-events: none; }
+
+  #feedback { min-height: 30px; font-size: clamp(18px, 4vw, 26px); font-weight: bold; margin-top: 10px; }
+
+  #nextBtn {
+    margin-top: 12px; font-family: inherit; font-size: clamp(18px, 4vw, 26px);
+    background: #ffca28; border: 4px solid #f9a825; border-radius: 20px;
+    padding: 10px 30px; cursor: pointer; box-shadow: 0 5px 0 #f57f17; color: #4e342e; font-weight: bold;
+  }
+  #nextBtn:active { transform: translateY(3px); box-shadow: 0 2px 0 #f57f17; }
+  #nextBtn[disabled] { opacity: 0.4; pointer-events: none; }
+
+  #overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 30;
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .card {
+    background: #fbfcff; border-radius: 26px; padding: 28px 22px; text-align: center;
+    max-width: 470px; box-shadow: 0 14px 34px rgba(0,0,0,0.4);
+  }
+  .card h2 { font-size: clamp(26px, 6vw, 40px); color: #3949ab; margin-bottom: 12px; }
+  .card p { font-size: clamp(16px, 3.4vw, 22px); color: #37474f; margin-bottom: 8px; line-height: 1.5; }
+  .card button {
+    margin-top: 18px; font-family: inherit; font-size: clamp(20px, 4.4vw, 28px); font-weight: bold;
+    background: #5c6bc0; color: #fff; border: none; border-radius: 20px; padding: 14px 34px;
+    cursor: pointer; box-shadow: 0 6px 0 #3949ab;
+  }
+  .card button:active { transform: translateY(3px); box-shadow: 0 3px 0 #3949ab; }
+  .hidden { display: none !important; }
+
+  .confetti { position: fixed; top: -20px; font-size: 22px; z-index: 40; pointer-events: none; }
+  @keyframes fall { to { transform: translateY(105vh) rotate(540deg); opacity: 0.4; } }
+</style>
+</head>
+<body>
+<a class="home" href="index.html">⌂ Home</a>
+<div id="app">
+  <header>
+    <h1>🔤 Alpha Blocks!</h1>
+    <div class="subtitle">Sound out the letters and spell the word, Sabrina!</div>
+  </header>
+
+  <div id="hud">
+    <div class="chip">⭐ <span id="stars">0</span></div>
+    <div class="chip">Round <span id="round">1</span>/10</div>
+  </div>
+
+  <div class="stage">
+    <div id="picture">🔤</div>
+    <div id="prompt">Ready?</div>
+    <button id="speakBtn">🔊 Say the word</button>
+    <div class="word-row" id="wordRow"></div>
+    <div class="tray" id="tray"></div>
+    <div id="feedback"></div>
+    <button id="nextBtn" disabled>Next ▶</button>
+  </div>
+</div>
+
+<div id="overlay">
+  <div class="card">
+    <h2>🔤 Alpha Blocks!</h2>
+    <p>Meet the Alpha Blocks! Look at the picture, then pick the missing letter or spell the whole word by tapping the letters in order.</p>
+    <p>10 rounds — medium level. Have fun, Sabrina! 💙</p>
+    <button id="startBtn">Start ▶</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const pictureEl = document.getElementById('picture');
+  const promptEl = document.getElementById('prompt');
+  const wordRow = document.getElementById('wordRow');
+  const tray = document.getElementById('tray');
+  const feedbackEl = document.getElementById('feedback');
+  const nextBtn = document.getElementById('nextBtn');
+  const starsEl = document.getElementById('stars');
+  const roundEl = document.getElementById('round');
+  const overlay = document.getElementById('overlay');
+  const speakBtn = document.getElementById('speakBtn');
+
+  const TOTAL = 10;
+  let round = 0, stars = 0, current = null, answered = false;
+
+  const WORDS = [
+    { w: 'cat', e: '🐱' }, { w: 'dog', e: '🐶' }, { w: 'sun', e: '☀️' },
+    { w: 'hat', e: '🎩' }, { w: 'bus', e: '🚌' }, { w: 'pig', e: '🐷' },
+    { w: 'fox', e: '🦊' }, { w: 'cow', e: '🐮' }, { w: 'bee', e: '🐝' },
+    { w: 'owl', e: '🦉' }, { w: 'frog', e: '🐸' }, { w: 'fish', e: '🐟' },
+    { w: 'star', e: '⭐' }, { w: 'cake', e: '🍰' }, { w: 'tree', e: '🌳' },
+    { w: 'book', e: '📖' }, { w: 'ball', e: '⚽' }, { w: 'moon', e: '🌙' },
+    { w: 'duck', e: '🦆' }, { w: 'bear', e: '🐻' }, { w: 'lion', e: '🦁' },
+    { w: 'crab', e: '🦀' }, { w: 'drum', e: '🥁' }, { w: 'kite', e: '🪁' },
+    { w: 'milk', e: '🥛' }, { w: 'leaf', e: '🍃' }, { w: 'boat', e: '⛵' },
+    { w: 'ring', e: '💍' }, { w: 'sock', e: '🧦' }, { w: 'bell', e: '🔔' },
+    { w: 'snake', e: '🐍' }, { w: 'train', e: '🚂' }, { w: 'clock', e: '🕐' },
+    { w: 'house', e: '🏠' }, { w: 'apple', e: '🍎' }, { w: 'heart', e: '❤️' },
+  ];
+
+  const letterColor = ch => `hsl(${((ch.charCodeAt(0) - 97) * 37) % 360}, 68%, 52%)`;
+  const rand = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
+  const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+  function speak(text, rate = 0.9) {
+    if (!('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US'; u.rate = rate; u.pitch = 1.1;
+    speechSynthesis.speak(u);
+  }
+  function spellOut(word) {
+    if (!('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    word.split('').forEach((ch, i) => {
+      const u = new SpeechSynthesisUtterance(ch);
+      u.lang = 'en-US'; u.rate = 0.8; u.pitch = 1.15;
+      speechSynthesis.speak(u);
+    });
+    const wu = new SpeechSynthesisUtterance(word);
+    wu.lang = 'en-US'; wu.rate = 0.85; wu.pitch = 1.1;
+    speechSynthesis.speak(wu);
+  }
+
+  // A letter block element (with a little face)
+  function letterBlock(ch, cls = 'lb') {
+    const el = document.createElement('div');
+    el.className = cls;
+    el.style.background = letterColor(ch);
+    el.innerHTML = '<div class="eyes"><i></i><i></i></div><div class="ch">' + ch + '</div>';
+    el.dataset.ch = ch;
+    return el;
+  }
+
+  // Round plan: mix of "missing letter" and full "spell" (medium).
+  const PLAN = ['missing','missing','spell','missing','spell','missing','spell','spell','missing','spell'];
+
+  function pickWords() {
+    const short = shuffle(WORDS.filter(x => x.w.length <= 4).slice());
+    const long  = shuffle(WORDS.filter(x => x.w.length >= 5).slice());
+    const chosen = [];
+    // give later rounds slightly longer words
+    for (let i = 0; i < TOTAL; i++) {
+      const pool = (i >= 6 && long.length) ? long : short;
+      chosen.push((pool.length ? pool.pop() : short.pop()));
+    }
+    return chosen;
+  }
+  let roundWords = [];
+
+  function showRound() {
+    answered = false;
+    nextBtn.disabled = true;
+    feedbackEl.textContent = '';
+    roundEl.textContent = round + 1;
+    wordRow.innerHTML = '';
+    tray.innerHTML = '';
+    const item = roundWords[round];
+    const mode = PLAN[round];
+    current = { ...item, mode };
+    pictureEl.textContent = item.e;
+
+    if (mode === 'missing') setupMissing(item);
+    else setupSpell(item);
+  }
+
+  // ---- Missing-letter mode ----
+  function setupMissing(item) {
+    const word = item.w;
+    const blank = rand(0, word.length - 1);
+    current.blank = blank;
+    promptEl.textContent = 'Which letter is missing?';
+    word.split('').forEach((ch, i) => {
+      if (i === blank) {
+        const slot = document.createElement('div');
+        slot.className = 'slot';
+        slot.id = 'blankSlot';
+        wordRow.appendChild(slot);
+      } else {
+        wordRow.appendChild(letterBlock(ch));
+      }
+    });
+    // choices: correct + 3 distractors
+    const correct = word[blank];
+    const set = new Set([correct]);
+    const alpha = 'abcdefghijklmnopqrstuvwxyz';
+    while (set.size < 4) { const c = alpha[rand(0, 25)]; set.add(c); }
+    shuffle([...set]).forEach(ch => {
+      const b = letterBlock(ch, 'lb choice-lb');
+      b.addEventListener('click', () => onPickMissing(b, ch));
+      tray.appendChild(b);
+    });
+    setTimeout(() => speak('Which letter is missing in ' + word + '?'), 350);
+  }
+
+  function onPickMissing(btn, ch) {
+    if (answered) return;
+    const word = current.w, blank = current.blank;
+    if (ch === word[blank]) {
+      answered = true;
+      nextBtn.disabled = false;
+      tray.querySelectorAll('.choice-lb').forEach(c => c.style.pointerEvents = 'none');
+      const slot = document.getElementById('blankSlot');
+      slot.className = 'slot filled';
+      slot.style.background = letterColor(ch);
+      slot.style.color = '#fff';
+      slot.style.borderColor = letterColor(ch);
+      slot.textContent = ch;
+      btn.classList.add('used');
+      stars++; starsEl.textContent = stars;
+      feedbackEl.style.color = '#2e7d32';
+      feedbackEl.textContent = '🌟 Yes! It spells ' + word.toUpperCase() + '!';
+      burstConfetti();
+      spellOut(word);
+    } else {
+      btn.classList.add('wrong');
+      btn.classList.add('shake');
+      setTimeout(() => btn.classList.remove('shake'), 400);
+      speak('Try again!');
+    }
+  }
+
+  // ---- Full spelling mode ----
+  function setupSpell(item) {
+    const word = item.w;
+    current.next = 0;
+    promptEl.textContent = 'Spell the word! Tap the letters in order.';
+    word.split('').forEach((ch, i) => {
+      const slot = document.createElement('div');
+      slot.className = 'slot';
+      slot.dataset.i = i;
+      wordRow.appendChild(slot);
+    });
+    const tiles = shuffle(word.split(''));
+    tiles.forEach((ch, idx) => {
+      const b = letterBlock(ch, 'lb');
+      b.addEventListener('click', () => onTapTile(b, ch));
+      tray.appendChild(b);
+    });
+    setTimeout(() => speak('Can you spell ' + word + '?'), 350);
+  }
+
+  function onTapTile(btn, ch) {
+    if (answered || btn.classList.contains('used')) return;
+    const word = current.w;
+    const need = word[current.next];
+    if (ch === need) {
+      const slot = wordRow.querySelector('.slot[data-i="' + current.next + '"]');
+      slot.className = 'slot filled';
+      slot.style.background = letterColor(ch);
+      slot.style.color = '#fff';
+      slot.style.borderColor = letterColor(ch);
+      slot.textContent = ch;
+      btn.classList.add('used');
+      current.next++;
+      if (current.next >= word.length) {
+        answered = true;
+        nextBtn.disabled = false;
+        stars++; starsEl.textContent = stars;
+        feedbackEl.style.color = '#2e7d32';
+        feedbackEl.textContent = '🌟 You spelled ' + word.toUpperCase() + '! 🌟';
+        burstConfetti();
+        spellOut(word);
+      } else {
+        speak(ch);
+      }
+    } else {
+      btn.classList.add('shake');
+      setTimeout(() => btn.classList.remove('shake'), 400);
+      speak('The next letter is ' + need + '.');
+    }
+  }
+
+  speakBtn.addEventListener('click', () => { if (current) spellOut(current.w); });
+
+  nextBtn.addEventListener('click', () => {
+    round++;
+    if (round >= TOTAL) return endGame();
+    showRound();
+  });
+
+  function endGame() {
+    const msg = stars >= 9 ? 'SUPER SPELLER! 🌟'
+              : stars >= 6 ? 'Great reading! 💪'
+              : 'Nice try — play again to spell even more! 💙';
+    overlay.querySelector('.card').innerHTML = `
+      <h2>All done! 🎉</h2>
+      <p>You earned <strong>${stars}</strong> out of ${TOTAL} stars.</p>
+      <p>${msg}</p>
+      <button id="startBtn">Play again ▶</button>`;
+    overlay.classList.remove('hidden');
+    document.getElementById('startBtn').addEventListener('click', start);
+    burstConfetti(); setTimeout(burstConfetti, 300);
+  }
+
+  function start() {
+    overlay.classList.add('hidden');
+    round = 0; stars = 0;
+    starsEl.textContent = 0;
+    roundWords = pickWords();
+    showRound();
+  }
+
+  function burstConfetti() {
+    const emojis = ['⭐','🎉','🔤','🅰️','🅱️','💙','💜','✨'];
+    for (let i = 0; i < 26; i++) {
+      const c = document.createElement('div');
+      c.className = 'confetti';
+      c.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      c.style.left = Math.random() * 100 + 'vw';
+      c.style.animation = `fall ${1 + Math.random() * 1.4}s linear forwards`;
+      document.body.appendChild(c);
+      setTimeout(() => c.remove(), 2600);
+    }
+  }
+
+  document.getElementById('startBtn').addEventListener('click', start);
+})();
+</script>
+</body>
+</html>
