@@ -54,7 +54,8 @@
     display: flex; align-items: flex-end; justify-content: center;
     gap: 22px; flex-wrap: wrap; min-height: 190px; margin-bottom: 6px;
   }
-  .nb { display: flex; align-items: flex-end; gap: 4px; }
+  .nb { position: relative; display: flex; align-items: flex-end; gap: 4px; margin: 18px 24px 28px; }
+  .nb.nb-tall { margin-top: clamp(50px, 14vw, 70px); }
   .nb-col { display: flex; flex-direction: column-reverse; gap: 4px; }
   .cube {
     width: clamp(30px, 8vw, 48px); height: clamp(30px, 8vw, 48px);
@@ -62,14 +63,27 @@
     box-shadow: inset 0 -6px 0 rgba(0,0,0,0.18), inset 0 4px 0 rgba(255,255,255,0.35), 0 2px 3px rgba(0,0,0,0.2);
     position: relative;
   }
-  .cube.face { display: flex; align-items: center; justify-content: center; gap: 18%; }
-  .cube .eye {
-    width: 22%; height: 22%; background: #fff; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 0 0 2px rgba(0,0,0,0.15);
-  }
-  .cube .eye::after { content: ''; width: 45%; height: 45%; background: #222; border-radius: 50%; }
+  /* face features */
+  .cube.face .eyes { position: absolute; top: 15%; left: 0; right: 0; display: flex; align-items: center; justify-content: center; gap: 20%; z-index: 2; }
+  .cube .eye { width: 24%; height: 24%; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px rgba(0,0,0,0.18); }
+  .cube .eye::after { content: ''; width: 46%; height: 46%; background: #222; border-radius: 50%; }
+  .cube .mouth { position: absolute; bottom: 14%; left: 50%; transform: translateX(-50%); width: 34%; height: 16%; background: #5a2323; border-radius: 0 0 40px 40px; z-index: 2; }
+  .cube .eyestar { position: absolute; z-index: 3; font-size: clamp(13px, 3.8vw, 21px); line-height: 1; }
+  .cube .crown3 { position: absolute; top: -42%; left: 50%; transform: translateX(-50%); width: 86%; height: 44%; background: #e53935; clip-path: polygon(0% 100%,0% 34%,18% 62%,34% 8%,50% 54%,66% 8%,82% 62%,100% 34%,100% 100%); z-index: 3; }
+  .cube .jball { position: absolute; width: 27%; height: 27%; border-radius: 50%; background: #e53935; box-shadow: inset 0 -2px 0 rgba(0,0,0,0.3); z-index: 3; }
+  /* arms with hands + legs with feet */
+  .arm { position: absolute; top: 40%; height: clamp(4px,1.3vw,6px); width: clamp(13px,3.4vw,18px); background: #2b2b2b; border-radius: 4px; z-index: 1; }
+  .arm.left { left: calc(-1 * clamp(13px,3.4vw,18px)); }
+  .arm.right { right: calc(-1 * clamp(13px,3.4vw,18px)); }
+  .arm .hand { position: absolute; top: 50%; transform: translateY(-50%); width: clamp(12px,3.2vw,16px); height: clamp(12px,3.2vw,16px); background: #fff; border: 2px solid #2b2b2b; border-radius: 50%; }
+  .arm.left .hand { left: calc(-1 * clamp(9px,2.6vw,12px)); }
+  .arm.right .hand { right: calc(-1 * clamp(9px,2.6vw,12px)); }
+  .leg { position: absolute; bottom: calc(-1 * clamp(12px,3.2vw,16px)); width: clamp(4px,1.3vw,6px); height: clamp(12px,3.2vw,16px); background: #2b2b2b; border-radius: 3px; z-index: 1; }
+  .leg.l { left: 30%; } .leg.r { right: 30%; }
+  .leg .foot { position: absolute; bottom: calc(-1 * clamp(4px,1.4vw,6px)); width: clamp(13px,3.4vw,17px); height: clamp(6px,1.8vw,9px); background: #2b2b2b; border-radius: 5px 9px 9px 5px; }
+  .leg.l .foot { left: -4px; } .leg.r .foot { right: -3px; }
   .cube.ghost { opacity: 0.28; border: 2px dashed #7a5; box-shadow: none; }
+  .cube.ghost .eyes, .cube.ghost .mouth, .cube.ghost .eyestar, .cube.ghost .crown3, .cube.ghost .jball { display: none; }
 
   .op { font-size: clamp(40px, 10vw, 66px); font-weight: bold; color: #e65100; align-self: center; }
 
@@ -212,11 +226,40 @@
       }
       wrap.appendChild(col);
     }
+    // Arms with hands + legs with feet (every Number Block has them)
+    ['left', 'right'].forEach(side => {
+      const arm = document.createElement('div'); arm.className = 'arm ' + side;
+      const hand = document.createElement('div'); hand.className = 'hand';
+      arm.appendChild(hand); wrap.appendChild(arm);
+    });
+    ['l', 'r'].forEach(side => {
+      const leg = document.createElement('div'); leg.className = 'leg ' + side;
+      const foot = document.createElement('div'); foot.className = 'foot';
+      leg.appendChild(foot); wrap.appendChild(leg);
+    });
+
     // Face on the very top cube of the first column (last child = top, since column-reverse)
     const firstCol = wrap.firstChild;
     const topCube = firstCol.lastChild;
     topCube.classList.add('face');
-    topCube.innerHTML = '<div class="eye"></div><div class="eye"></div>';
+    const eyes = document.createElement('div'); eyes.className = 'eyes';
+    const eyeCount = (n === 1) ? 1 : 2;   // One has a single eye
+    for (let i = 0; i < eyeCount; i++) { const e = document.createElement('div'); e.className = 'eye'; eyes.appendChild(e); }
+    topCube.appendChild(eyes);
+    const mouth = document.createElement('div'); mouth.className = 'mouth'; topCube.appendChild(mouth);
+
+    // Special features
+    const addStar = (pos) => { const s = document.createElement('div'); s.className = 'eyestar'; s.textContent = '⭐'; Object.assign(s.style, pos); topCube.appendChild(s); };
+    if (n === 5) addStar({ right: '12%', top: '-2%' });                                 // Five: a star by her eye
+    if (n === 10) { addStar({ left: '4%', top: '-2%' }); addStar({ right: '4%', top: '-2%' }); } // Ten: a star by each eye
+    if (n === 3) {                                                                       // Three: red crown + red juggling balls
+      const crown = document.createElement('div'); crown.className = 'crown3'; topCube.appendChild(crown);
+      [{ left: '-16%', top: '-78%' }, { left: '37%', top: '-104%' }, { right: '-16%', top: '-78%' }].forEach(p => {
+        const b = document.createElement('div'); b.className = 'jball'; Object.assign(b.style, p); topCube.appendChild(b);
+      });
+      wrap.classList.add('nb-tall');
+    }
+
     // Ghost the top-most cubes to show "taken away"
     if (ghostCount > 0) {
       const ghosts = allCubes.slice(-ghostCount);
