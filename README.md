@@ -20,6 +20,7 @@ A little collection of browser games for early learners (age 6 and up). All game
 | 🧁 Cupcake Unicorn Cece | Creative cupcake-decorating sandbox (in Bahasa Indonesia) | [cupcake-game.html](cupcake-game.html) |
 | 🧮 Number Blocks | Counting, addition, subtraction, doubling, next number (medium) | [number-blocks-game.html](number-blocks-game.html) |
 | 🔤 Alpha Blocks | Phonics & spelling — missing letter and spell-the-word (medium) | [alpha-blocks-game.html](alpha-blocks-game.html) |
+| 🤖 Robot Coder | Programming logic for kids — sequence arrow commands to guide a robot to the goal (ages 6+) | [robot-coder-game.html](robot-coder-game.html) |
 
 ## Tech
 
