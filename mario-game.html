@@ -240,8 +240,10 @@
 
     pipes = [
       // x = tile col of left edge, topY = pixel y of top, h = height in tiles
-      { x: 10*T, topY: 7*T, h: 2 },
-      { x: 30*T, topY: 6*T, h: 3 },
+      // All pipes are 2 tiles tall and set well clear of pit edges so each
+      // jump is a single, forgiving hop for a young player.
+      { x: 4*T,  topY: 7*T, h: 2 },
+      { x: 30*T, topY: 7*T, h: 2 },
       { x: 50*T, topY: 7*T, h: 2 },
     ];
 
