@@ -25,6 +25,7 @@ A little collection of browser games for early learners (age 6 and up). All game
 | 🔁 Loop Coder | Programming loops — build a short plan and repeat it to collect all gems (ages 6+) | [loop-coder-game.html](loop-coder-game.html) |
 | 🧩 Pattern Finder | Pattern & sequence logic — spot the rule and pick what comes next (ages 6+) | [pattern-finder-game.html](pattern-finder-game.html) |
 | 🚀🌙 Moon Mission | Phonics & spelling — space vocabulary, missing letter and spell-the-word | [moon-mission-game.html](moon-mission-game.html) |
+| 🧁🫐 Muffin Bakery | Sequencing & following simple multi-step instructions (ages 3-5) | [muffin-game.html](muffin-game.html) |
 
 ## Tech
 
