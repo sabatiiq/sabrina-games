@@ -24,6 +24,7 @@ A little collection of browser games for early learners (age 6 and up). All game
 | 🪙 Coin Shop | Basic economics — prices, adding up, budgeting, making change, saving, and choices (ages 6+) | [coin-shop-game.html](coin-shop-game.html) |
 | 🔁 Loop Coder | Programming loops — build a short plan and repeat it to collect all gems (ages 6+) | [loop-coder-game.html](loop-coder-game.html) |
 | 🧩 Pattern Finder | Pattern & sequence logic — spot the rule and pick what comes next (ages 6+) | [pattern-finder-game.html](pattern-finder-game.html) |
+| 🚀🌙 Moon Mission | Phonics & spelling — space vocabulary, missing letter and spell-the-word | [moon-mission-game.html](moon-mission-game.html) |
 
 ## Tech
 

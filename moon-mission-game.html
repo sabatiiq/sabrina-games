@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moon Mission! 🚀🌙</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    min-height: 100%;
+    font-family: 'Comic Sans MS', 'Marker Felt', cursive, sans-serif;
+    background: radial-gradient(circle at 20% 15%, #1b2a5b 0%, #0d1330 45%, #05060f 100%);
+    user-select: none;
+    color: #eaf0ff;
+    overflow-x: hidden;
+  }
+  body { padding: 16px 14px 50px; min-height: 100vh; position: relative; }
+  #app { max-width: 780px; margin: 0 auto; position: relative; z-index: 2; }
+
+  /* twinkling star field */
+  .bgstar { position: fixed; width: 3px; height: 3px; background: #fff; border-radius: 50%; z-index: 0;
+    animation: twinkle 3s ease-in-out infinite; }
+  @keyframes twinkle { 0%,100%{opacity:0.25} 50%{opacity:1} }
+
+  .home {
+    position: fixed; top: 12px; left: 12px; z-index: 20;
+    background: rgba(255,255,255,0.14); color: #fff; padding: 7px 12px;
+    text-decoration: none; border-radius: 12px; font-size: 15px;
+  }
+
+  header { text-align: center; margin-bottom: 10px; }
+  h1 {
+    font-size: clamp(30px, 7vw, 52px);
+    color: #fff;
+    text-shadow: 0 0 12px #6f8bff, 3px 3px 0 #3949ab, 6px 6px 0 rgba(0,0,0,0.35);
+  }
+  .subtitle {
+    font-size: clamp(14px, 3vw, 20px);
+    color: #cfe0ff;
+    background: rgba(60,80,160,0.4);
+    border: 2px solid rgba(150,180,255,0.5);
+    border-radius: 20px; padding: 5px 16px; display: inline-block; margin-top: 6px;
+  }
+
+  #hud { display: flex; justify-content: center; gap: 12px; margin: 8px 0 6px; flex-wrap: wrap; }
+  .chip {
+    background: rgba(255,255,255,0.12); border: 2px solid rgba(150,180,255,0.6);
+    border-radius: 18px; padding: 6px 16px; font-size: clamp(15px, 3vw, 20px); font-weight: bold;
+  }
+
+  /* Journey-to-the-moon track */
+  #journey {
+    position: relative; height: 64px; margin: 6px 4px 14px;
+    background: linear-gradient(90deg, rgba(60,90,180,0.25), rgba(30,40,90,0.15));
+    border: 2px solid rgba(150,180,255,0.35); border-radius: 40px;
+  }
+  #track {
+    position: absolute; left: 54px; right: 52px; top: 50%; height: 0;
+    border-top: 3px dashed rgba(180,200,255,0.55);
+  }
+  #earth { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); font-size: 38px; }
+  #moon  { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); font-size: 40px;
+    filter: drop-shadow(0 0 10px rgba(255,255,210,0.7)); }
+  #rocket {
+    position: absolute; top: 50%; font-size: 34px; left: 54px;
+    transform: translate(-50%, -50%) rotate(45deg);
+    transition: left 0.9s cubic-bezier(.34,1.3,.5,1);
+  }
+
+  .stage {
+    background: rgba(255,255,255,0.95);
+    border-radius: 24px; padding: 16px 14px 22px;
+    box-shadow: 0 10px 26px rgba(0,0,0,0.4);
+    text-align: center; color: #21324e;
+  }
+
+  #picture { font-size: clamp(64px, 16vw, 110px); line-height: 1.1; margin-bottom: 2px; }
+  #prompt { font-size: clamp(18px, 4.2vw, 26px); font-weight: bold; color: #303f9f; margin-bottom: 10px; }
+
+  #speakBtn {
+    background: #e8eaf6; border: 3px solid #9fa8da; border-radius: 16px;
+    font-size: 22px; padding: 4px 14px; cursor: pointer; margin-bottom: 12px; font-family: inherit;
+  }
+
+  .word-row, .tray {
+    display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 10px 0;
+  }
+  .lb {
+    width: clamp(44px, 11.5vw, 64px); height: clamp(50px, 13vw, 72px);
+    border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-size: clamp(25px, 6.8vw, 38px); font-weight: bold; color: #fff; text-transform: uppercase;
+    box-shadow: inset 0 -7px 0 rgba(0,0,0,0.2), inset 0 5px 0 rgba(255,255,255,0.3), 0 3px 4px rgba(0,0,0,0.25);
+    position: relative;
+  }
+  .lb .eyes { position: absolute; top: 6px; display: flex; gap: 20%; width: 60%; justify-content: center; }
+  .lb .eyes i { width: 9px; height: 9px; background: #fff; border-radius: 50%; box-shadow: 0 0 0 2px rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center; }
+  .lb .eyes i::after { content: ''; width: 4px; height: 4px; background: #222; border-radius: 50%; }
+  .lb .ch { margin-top: 10px; }
+
+  .slot {
+    width: clamp(44px, 11.5vw, 64px); height: clamp(50px, 13vw, 72px);
+    border-radius: 12px; border: 3px dashed #7986cb; background: rgba(121,134,203,0.12);
+    display: flex; align-items: center; justify-content: center;
+    font-size: clamp(25px, 6.8vw, 38px); font-weight: bold; text-transform: uppercase; color: #3949ab;
+  }
+  .slot.filled { border-style: solid; }
+
+  .tray .lb { cursor: pointer; transition: transform 0.08s; }
+  .tray .lb:active { transform: translateY(3px); }
+  .tray .lb.used { opacity: 0.25; pointer-events: none; }
+  .shake { animation: shake 0.4s; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-7px)} 40%{transform:translateX(7px)} 60%{transform:translateX(-5px)} 80%{transform:translateX(5px)} }
+
+  .choice-lb { cursor: pointer; transition: transform 0.08s; }
+  .choice-lb:active { transform: translateY(3px); }
+  .choice-lb.wrong { filter: grayscale(0.7); opacity: 0.4; pointer-events: none; }
+
+  #feedback { min-height: 30px; font-size: clamp(18px, 4vw, 26px); font-weight: bold; margin-top: 10px; }
+
+  #nextBtn {
+    margin-top: 12px; font-family: inherit; font-size: clamp(18px, 4vw, 26px);
+    background: #ffca28; border: 4px solid #f9a825; border-radius: 20px;
+    padding: 10px 30px; cursor: pointer; box-shadow: 0 5px 0 #f57f17; color: #4e342e; font-weight: bold;
+  }
+  #nextBtn:active { transform: translateY(3px); box-shadow: 0 2px 0 #f57f17; }
+  #nextBtn[disabled] { opacity: 0.4; pointer-events: none; }
+
+  #overlay {
+    position: fixed; inset: 0; background: rgba(3,6,20,0.8); z-index: 30;
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .card {
+    background: #0f1740; border: 2px solid rgba(150,180,255,0.5);
+    border-radius: 26px; padding: 28px 22px; text-align: center;
+    max-width: 470px; box-shadow: 0 14px 40px rgba(0,0,0,0.6);
+  }
+  .card h2 { font-size: clamp(26px, 6vw, 40px); color: #aec4ff; margin-bottom: 12px; text-shadow: 0 0 10px #6f8bff; }
+  .card p { font-size: clamp(16px, 3.4vw, 22px); color: #dfe7ff; margin-bottom: 8px; line-height: 1.5; }
+  .card button {
+    margin-top: 18px; font-family: inherit; font-size: clamp(20px, 4.4vw, 28px); font-weight: bold;
+    background: #5c6bc0; color: #fff; border: none; border-radius: 20px; padding: 14px 34px;
+    cursor: pointer; box-shadow: 0 6px 0 #3949ab;
+  }
+  .card button:active { transform: translateY(3px); box-shadow: 0 3px 0 #3949ab; }
+  .hidden { display: none !important; }
+
+  .confetti { position: fixed; top: -20px; font-size: 22px; z-index: 40; pointer-events: none; }
+  @keyframes fall { to { transform: translateY(105vh) rotate(540deg); opacity: 0.4; } }
+</style>
+</head>
+<body>
+<a class="home" href="index.html">⌂ Home</a>
+<div id="app">
+  <header>
+    <h1>🚀 Moon Mission!</h1>
+    <div class="subtitle">Spell the space word to fly closer to the Moon!</div>
+  </header>
+
+  <div id="hud">
+    <div class="chip">⭐ <span id="stars">0</span></div>
+    <div class="chip">Blast-off <span id="round">1</span>/10</div>
+  </div>
+
+  <div id="journey">
+    <div id="track"></div>
+    <div id="earth">🌍</div>
+    <div id="rocket">🚀</div>
+    <div id="moon">🌙</div>
+  </div>
+
+  <div class="stage">
+    <div id="picture">🚀</div>
+    <div id="prompt">Ready for take-off?</div>
+    <button id="speakBtn">🔊 Say the word</button>
+    <div class="word-row" id="wordRow"></div>
+    <div class="tray" id="tray"></div>
+    <div id="feedback"></div>
+    <button id="nextBtn" disabled>Next ▶</button>
+  </div>
+</div>
+
+<div id="overlay">
+  <div class="card">
+    <h2>🚀 Moon Mission!</h2>
+    <p>Astronaut Sabrina is flying to the Moon! 🌙</p>
+    <p>Look at the picture, then pick the missing letter or spell the whole space word. Every word you spell flies the rocket closer to the Moon!</p>
+    <p>10 space words to land safely. Ready, astronaut? 💙</p>
+    <button id="startBtn">Blast off ▶</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const pictureEl = document.getElementById('picture');
+  const promptEl = document.getElementById('prompt');
+  const wordRow = document.getElementById('wordRow');
+  const tray = document.getElementById('tray');
+  const feedbackEl = document.getElementById('feedback');
+  const nextBtn = document.getElementById('nextBtn');
+  const starsEl = document.getElementById('stars');
+  const roundEl = document.getElementById('round');
+  const overlay = document.getElementById('overlay');
+  const speakBtn = document.getElementById('speakBtn');
+  const rocketEl = document.getElementById('rocket');
+
+  const TOTAL = 10;
+  let round = 0, stars = 0, current = null, answered = false;
+
+  // Space vocabulary for early readers (ages 6-8)
+  const WORDS = [
+    { w: 'sun',    e: '☀️' }, { w: 'moon',   e: '🌙' }, { w: 'star',   e: '⭐' },
+    { w: 'mars',   e: '🔴' }, { w: 'flag',   e: '🚩' }, { w: 'suit',   e: '🧑‍🚀' },
+    { w: 'rocket', e: '🚀' }, { w: 'comet',  e: '☄️' }, { w: 'alien',  e: '👽' },
+    { w: 'earth',  e: '🌍' }, { w: 'orbit',  e: '🛰️' }, { w: 'planet', e: '🪐' },
+    { w: 'galaxy', e: '🌌' }, { w: 'meteor', e: '🌠' }, { w: 'rover',  e: '🤖' },
+    { w: 'crater', e: '🌑' }, { w: 'stars',  e: '🌟' },
+  ];
+
+  const letterColor = ch => `hsl(${((ch.charCodeAt(0) - 97) * 37) % 360}, 68%, 52%)`;
+  const rand = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
+  const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+  function speak(text, rate = 0.9) {
+    if (!('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US'; u.rate = rate; u.pitch = 1.1;
+    speechSynthesis.speak(u);
+  }
+  function spellOut(word) {
+    if (!('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    word.split('').forEach((ch) => {
+      const u = new SpeechSynthesisUtterance(ch);
+      u.lang = 'en-US'; u.rate = 0.8; u.pitch = 1.15;
+      speechSynthesis.speak(u);
+    });
+    const wu = new SpeechSynthesisUtterance(word);
+    wu.lang = 'en-US'; wu.rate = 0.85; wu.pitch = 1.1;
+    speechSynthesis.speak(wu);
+  }
+
+  // Fly the rocket along the track. progress 0..1
+  function flyRocket(progress) {
+    const p = Math.max(0, Math.min(1, progress));
+    // left edge starts at 54px, moon sits near the right; keep a little gap
+    rocketEl.style.left = `calc(54px + (100% - 106px) * ${p})`;
+  }
+
+  // A letter block element (with a little face)
+  function letterBlock(ch, cls = 'lb') {
+    const el = document.createElement('div');
+    el.className = cls;
+    el.style.background = letterColor(ch);
+    el.innerHTML = '<div class="eyes"><i></i><i></i></div><div class="ch">' + ch + '</div>';
+    el.dataset.ch = ch;
+    return el;
+  }
+
+  // Round plan: mix of "missing letter" and full "spell".
+  const PLAN = ['missing','missing','spell','missing','spell','missing','spell','spell','missing','spell'];
+
+  function pickWords() {
+    const short = shuffle(WORDS.filter(x => x.w.length <= 4).slice());
+    const long  = shuffle(WORDS.filter(x => x.w.length >= 5).slice());
+    const chosen = [];
+    for (let i = 0; i < TOTAL; i++) {
+      // give later rounds slightly longer words
+      const pool = (i >= 5 && long.length) ? long : short;
+      chosen.push((pool.length ? pool.pop() : (short.length ? short.pop() : long.pop())));
+    }
+    return chosen;
+  }
+  let roundWords = [];
+
+  function showRound() {
+    answered = false;
+    nextBtn.disabled = true;
+    feedbackEl.textContent = '';
+    roundEl.textContent = round + 1;
+    wordRow.innerHTML = '';
+    tray.innerHTML = '';
+    flyRocket(round / TOTAL);
+    const item = roundWords[round];
+    const mode = PLAN[round];
+    current = { ...item, mode };
+    pictureEl.textContent = item.e;
+
+    if (mode === 'missing') setupMissing(item);
+    else setupSpell(item);
+  }
+
+  // ---- Missing-letter mode ----
+  function setupMissing(item) {
+    const word = item.w;
+    const blank = rand(0, word.length - 1);
+    current.blank = blank;
+    promptEl.textContent = 'Which letter is missing?';
+    word.split('').forEach((ch, i) => {
+      if (i === blank) {
+        const slot = document.createElement('div');
+        slot.className = 'slot';
+        slot.id = 'blankSlot';
+        wordRow.appendChild(slot);
+      } else {
+        wordRow.appendChild(letterBlock(ch));
+      }
+    });
+    const correct = word[blank];
+    const set = new Set([correct]);
+    const alpha = 'abcdefghijklmnopqrstuvwxyz';
+    while (set.size < 4) { const c = alpha[rand(0, 25)]; set.add(c); }
+    shuffle([...set]).forEach(ch => {
+      const b = letterBlock(ch, 'lb choice-lb');
+      b.addEventListener('click', () => onPickMissing(b, ch));
+      tray.appendChild(b);
+    });
+    setTimeout(() => speak('Which letter is missing in ' + word + '?'), 350);
+  }
+
+  function onPickMissing(btn, ch) {
+    if (answered) return;
+    const word = current.w, blank = current.blank;
+    if (ch === word[blank]) {
+      answered = true;
+      nextBtn.disabled = false;
+      tray.querySelectorAll('.choice-lb').forEach(c => c.style.pointerEvents = 'none');
+      const slot = document.getElementById('blankSlot');
+      slot.className = 'slot filled';
+      slot.style.background = letterColor(ch);
+      slot.style.color = '#fff';
+      slot.style.borderColor = letterColor(ch);
+      slot.textContent = ch;
+      btn.classList.add('used');
+      onCorrect(word);
+    } else {
+      btn.classList.add('wrong');
+      btn.classList.add('shake');
+      setTimeout(() => btn.classList.remove('shake'), 400);
+      speak('Try again!');
+    }
+  }
+
+  // ---- Full spelling mode ----
+  function setupSpell(item) {
+    const word = item.w;
+    current.next = 0;
+    promptEl.textContent = 'Spell the word! Tap the letters in order.';
+    word.split('').forEach((ch, i) => {
+      const slot = document.createElement('div');
+      slot.className = 'slot';
+      slot.dataset.i = i;
+      wordRow.appendChild(slot);
+    });
+    const tiles = shuffle(word.split(''));
+    tiles.forEach((ch) => {
+      const b = letterBlock(ch, 'lb');
+      b.addEventListener('click', () => onTapTile(b, ch));
+      tray.appendChild(b);
+    });
+    setTimeout(() => speak('Can you spell ' + word + '?'), 350);
+  }
+
+  function onTapTile(btn, ch) {
+    if (answered || btn.classList.contains('used')) return;
+    const word = current.w;
+    const need = word[current.next];
+    if (ch === need) {
+      const slot = wordRow.querySelector('.slot[data-i="' + current.next + '"]');
+      slot.className = 'slot filled';
+      slot.style.background = letterColor(ch);
+      slot.style.color = '#fff';
+      slot.style.borderColor = letterColor(ch);
+      slot.textContent = ch;
+      btn.classList.add('used');
+      current.next++;
+      if (current.next >= word.length) {
+        answered = true;
+        nextBtn.disabled = false;
+        onCorrect(word);
+      } else {
+        speak(ch);
+      }
+    } else {
+      btn.classList.add('shake');
+      setTimeout(() => btn.classList.remove('shake'), 400);
+      speak('The next letter is ' + need + '.');
+    }
+  }
+
+  // Shared "you got it right" handling — score, fly rocket, cheer.
+  function onCorrect(word) {
+    stars++; starsEl.textContent = stars;
+    flyRocket((round + 1) / TOTAL);
+    feedbackEl.style.color = '#2e7d32';
+    const last = round + 1 >= TOTAL;
+    feedbackEl.textContent = last
+      ? '🌙 You spelled ' + word.toUpperCase() + ' — the Moon is right ahead!'
+      : '🚀 ' + word.toUpperCase() + '! Whoosh — closer to the Moon!';
+    burstConfetti();
+    spellOut(word);
+  }
+
+  speakBtn.addEventListener('click', () => { if (current) spellOut(current.w); });
+
+  nextBtn.addEventListener('click', () => {
+    round++;
+    if (round >= TOTAL) return endGame();
+    showRound();
+  });
+
+  function endGame() {
+    flyRocket(1);
+    const msg = stars >= 9 ? 'SUPER ASTRONAUT! 🌟'
+              : stars >= 6 ? 'Great flying, space cadet! 💪'
+              : 'Nice mission — blast off again to spell even more! 💙';
+    overlay.querySelector('.card').innerHTML = `
+      <h2>Touchdown on the Moon! 🌙🧑‍🚀</h2>
+      <p>You spelled your way across space and earned <strong>${stars}</strong> of ${TOTAL} stars.</p>
+      <p>${msg}</p>
+      <button id="startBtn">Fly again ▶</button>`;
+    overlay.classList.remove('hidden');
+    document.getElementById('startBtn').addEventListener('click', start);
+    burstConfetti(); setTimeout(burstConfetti, 300); setTimeout(burstConfetti, 600);
+  }
+
+  function start() {
+    overlay.classList.add('hidden');
+    round = 0; stars = 0;
+    starsEl.textContent = 0;
+    roundWords = pickWords();
+    flyRocket(0);
+    showRound();
+  }
+
+  function burstConfetti() {
+    const emojis = ['⭐','🎉','🚀','🌙','🪐','💙','💜','✨','🌟'];
+    for (let i = 0; i < 26; i++) {
+      const c = document.createElement('div');
+      c.className = 'confetti';
+      c.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      c.style.left = Math.random() * 100 + 'vw';
+      c.style.animation = `fall ${1 + Math.random() * 1.4}s linear forwards`;
+      document.body.appendChild(c);
+      setTimeout(() => c.remove(), 2600);
+    }
+  }
+
+  // scatter a twinkling star field behind everything
+  (function starfield() {
+    for (let i = 0; i < 60; i++) {
+      const s = document.createElement('div');
+      s.className = 'bgstar';
+      s.style.left = Math.random() * 100 + 'vw';
+      s.style.top = Math.random() * 100 + 'vh';
+      s.style.animationDelay = (Math.random() * 3) + 's';
+      s.style.transform = `scale(${0.6 + Math.random() * 1.4})`;
+      document.body.appendChild(s);
+    }
+  })();
+
+  document.getElementById('startBtn').addEventListener('click', start);
+})();
+</script>
+</body>
+</html>
