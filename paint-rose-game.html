@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Paint a Rose! 🌹</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    font-family: 'Comic Sans MS', 'Marker Felt', cursive, sans-serif;
+    background: linear-gradient(180deg, #ffe0f0 0%, #f8bbd0 50%, #e1bee7 100%);
+    user-select: none;
+    touch-action: none;
+  }
+  #game {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px;
+    gap: 8px;
+  }
+  #title {
+    font-size: clamp(24px, 6vw, 44px);
+    font-weight: bold;
+    color: #ad1457;
+    text-shadow: 2px 2px 0 #fff, 4px 4px 0 rgba(0,0,0,0.08);
+    text-align: center;
+    flex: 0 0 auto;
+  }
+  #easel {
+    position: relative;
+    flex: 1 1 auto;
+    aspect-ratio: 400 / 500;
+    max-width: 96vw;
+    max-height: 68vh;
+    background: #fffdf7;
+    border: 8px solid #fff;
+    border-radius: 22px;
+    box-shadow: 0 8px 0 rgba(173,20,87,0.25), 0 14px 30px rgba(0,0,0,0.2);
+    overflow: hidden;
+    touch-action: none;
+  }
+  #paint { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  #outline {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 2;
+  }
+  #outline path { fill: none; stroke: #7a1030; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+  #palette {
+    flex: 0 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    padding: 6px;
+    max-width: 96vw;
+  }
+  .swatch {
+    width: clamp(38px, 9vw, 54px);
+    height: clamp(38px, 9vw, 54px);
+    border-radius: 50%;
+    border: 4px solid #fff;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.2);
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+  .swatch:active { transform: scale(0.9); }
+  .swatch.sel { border-color: #333; transform: scale(1.15); box-shadow: 0 3px 0 rgba(0,0,0,0.35), 0 0 0 3px #ffeb3b; }
+  .tool {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: clamp(40px, 9vw, 56px);
+    height: clamp(40px, 9vw, 56px);
+    border-radius: 16px;
+    border: 4px solid #fff;
+    background: rgba(255,255,255,0.7);
+    box-shadow: 0 3px 0 rgba(0,0,0,0.2);
+    font-size: clamp(22px, 5vw, 30px);
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+  .tool:active { transform: scale(0.9); }
+  .tool.sel { border-color: #333; box-shadow: 0 3px 0 rgba(0,0,0,0.35), 0 0 0 3px #ffeb3b; }
+  .pop {
+    position: absolute;
+    font-size: 34px;
+    font-weight: bold;
+    z-index: 9;
+    pointer-events: none;
+    animation: popUp 0.9s ease-out forwards;
+    color: #d81b60;
+    text-shadow: 2px 2px 0 white, -2px -2px 0 white, 2px -2px 0 white, -2px 2px 0 white;
+  }
+  @keyframes popUp {
+    0%   { transform: translateY(0) scale(0.5); opacity: 1; }
+    100% { transform: translateY(-70px) scale(1.4); opacity: 0; }
+  }
+</style>
+</head>
+<body>
+<div id="game">
+  <div id="title">🌹 Paint a Rose, Sabrina! 🎨</div>
+
+  <div id="easel">
+    <canvas id="paint"></canvas>
+    <svg id="outline" viewBox="0 0 400 500" preserveAspectRatio="xMidYMid meet">
+      <!-- stem -->
+      <path d="M200,250 C 206,320 236,360 214,478" />
+      <!-- left leaf -->
+      <path d="M214,372 C 168,338 120,352 138,398 C 168,420 206,408 214,372 Z" />
+      <path d="M214,372 C 186,378 162,384 140,396" />
+      <!-- right leaf -->
+      <path d="M210,322 C 262,292 312,306 292,352 C 262,374 220,360 210,322 Z" />
+      <path d="M210,322 C 240,328 266,334 290,348" />
+      <!-- bloom petals + spiral get injected here by JS -->
+      <path id="petals" d="" />
+      <path id="spiral" d="" />
+    </svg>
+  </div>
+
+  <div id="palette"></div>
+</div>
+
+<script>
+(() => {
+  const easel   = document.getElementById('easel');
+  const canvas  = document.getElementById('paint');
+  const ctx     = canvas.getContext('2d');
+
+  // ----- build the rose bloom outline (scalloped petals + swirl) -----
+  const CX = 200, CY = 150;
+  function petalPath() {
+    let d = '';
+    const N = 140;
+    for (let i = 0; i <= N; i++) {
+      const t = (i / N) * Math.PI * 2;
+      const r = 92 + 16 * Math.cos(7 * t);       // 7 rounded petals
+      const x = CX + r * Math.cos(t);
+      const y = CY + r * Math.sin(t) * 0.92;
+      d += (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1) + ' ';
+    }
+    return d + 'Z';
+  }
+  function spiralPath() {
+    let d = '';
+    const N = 220;
+    const turns = 2.6;
+    for (let i = 0; i <= N; i++) {
+      const f = i / N;
+      const t = f * Math.PI * 2 * turns;
+      const r = 8 + f * 74;
+      const x = CX + r * Math.cos(t);
+      const y = CY + r * Math.sin(t) * 0.92;
+      d += (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1) + ' ';
+    }
+    return d;
+  }
+  document.getElementById('petals').setAttribute('d', petalPath());
+  document.getElementById('spiral').setAttribute('d', spiralPath());
+
+  // ----- palette -----
+  const COLORS = [
+    ['#e91e63', 'pink'],   ['#ff5252', 'red'],    ['#d81b60', 'rose'],
+    ['#ba68c8', 'purple'], ['#7e57c2', 'violet'], ['#ffb300', 'yellow'],
+    ['#ff8f00', 'orange'], ['#43a047', 'green'],  ['#2e7d32', 'dark green'],
+    ['#29b6f6', 'blue'],   ['#8d6e63', 'brown'],  ['#ffffff', 'white'],
+  ];
+  const palette = document.getElementById('palette');
+
+  let current = COLORS[0][0];
+  let brush = 26;
+  let mode = 'paint';           // 'paint' | 'rainbow' | 'glitter'
+  let hue = 0;
+
+  function speak(text) {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 1.0; u.pitch = 1.4; u.lang = 'en-US';
+    window.speechSynthesis.speak(u);
+  }
+
+  const swatchEls = [];
+  COLORS.forEach(([hex, name], idx) => {
+    const s = document.createElement('div');
+    s.className = 'swatch' + (idx === 0 ? ' sel' : '');
+    s.style.background = hex;
+    s.addEventListener('click', () => {
+      current = hex; mode = 'paint';
+      selectTool(null);
+      swatchEls.forEach(e => e.classList.remove('sel'));
+      s.classList.add('sel');
+      speak(name);
+    });
+    palette.appendChild(s);
+    swatchEls.push(s);
+  });
+
+  // tools: rainbow, glitter, start over
+  const tools = [];
+  function addTool(emoji, label, onClick, selectable) {
+    const t = document.createElement('div');
+    t.className = 'tool';
+    t.textContent = emoji;
+    t.title = label;
+    t.addEventListener('click', () => {
+      if (selectable) { selectTool(t); swatchEls.forEach(e => e.classList.remove('sel')); }
+      onClick();
+    });
+    palette.appendChild(t);
+    if (selectable) tools.push(t);
+    return t;
+  }
+  function selectTool(active) {
+    tools.forEach(t => t.classList.toggle('sel', t === active));
+  }
+  addTool('🌈', 'Rainbow brush', () => { mode = 'rainbow'; speak('Rainbow!'); }, true);
+  addTool('✨', 'Glitter brush', () => { mode = 'glitter'; speak('Glitter!'); }, true);
+  addTool('🧼', 'Start over', () => { clearPaint(); speak('All clean!'); }, false);
+
+  // ----- canvas sizing (crisp, preserves drawing on resize) -----
+  let dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+  function sizeCanvas() {
+    const rect = easel.getBoundingClientRect();
+    const w = Math.round(rect.width), h = Math.round(rect.height);
+    if (w === 0 || h === 0) return;
+    // preserve existing art
+    let old = null;
+    if (canvas.width) {
+      old = document.createElement('canvas');
+      old.width = canvas.width; old.height = canvas.height;
+      old.getContext('2d').drawImage(canvas, 0, 0);
+    }
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (old) ctx.drawImage(old, 0, 0, old.width, old.height, 0, 0, w, h);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+  }
+
+  function clearPaint() {
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+  }
+
+  // ----- painting -----
+  let drawing = false, lastX = 0, lastY = 0;
+
+  function pos(e) {
+    const rect = canvas.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }
+
+  function strokeColor() {
+    if (mode === 'rainbow') { hue = (hue + 12) % 360; return `hsl(${hue},85%,58%)`; }
+    return current;
+  }
+
+  function dab(x, y) {
+    if (mode === 'glitter') {
+      const marks = ['✨', '⭐', '💖', '🌸', '💫'];
+      ctx.font = (brush + 14) + 'px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(marks[(Math.floor(x + y)) % marks.length], x, y);
+      return;
+    }
+    ctx.strokeStyle = strokeColor();
+    ctx.lineWidth = brush;
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    // soft round tip
+    ctx.fillStyle = ctx.strokeStyle;
+    ctx.beginPath();
+    ctx.arc(x, y, brush / 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function down(e) {
+    drawing = true;
+    const p = pos(e);
+    lastX = p.x; lastY = p.y;
+    dab(p.x, p.y);
+    e.preventDefault();
+  }
+  function move(e) {
+    if (!drawing) return;
+    const p = pos(e);
+    dab(p.x, p.y);
+    lastX = p.x; lastY = p.y;
+    e.preventDefault();
+  }
+  function up() { drawing = false; }
+
+  canvas.addEventListener('pointerdown', down);
+  canvas.addEventListener('pointermove', move);
+  window.addEventListener('pointerup', up);
+  canvas.addEventListener('pointerleave', up);
+
+  window.addEventListener('resize', sizeCanvas);
+  // initial size (after layout settles)
+  requestAnimationFrame(sizeCanvas);
+  setTimeout(sizeCanvas, 60);
+})();
+</script>
+</body>
+</html>
