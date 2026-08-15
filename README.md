@@ -26,7 +26,7 @@ A little collection of browser games for early learners (age 6 and up). All game
 | 🧩 Pattern Finder | Pattern & sequence logic — spot the rule and pick what comes next (ages 6+) | [pattern-finder-game.html](pattern-finder-game.html) |
 | 🚀🌙 Moon Mission | Phonics & spelling — space vocabulary, missing letter and spell-the-word | [moon-mission-game.html](moon-mission-game.html) |
 | 🧁🫐 Muffin Bakery | Sequencing & following simple multi-step instructions (ages 3-5) | [muffin-game.html](muffin-game.html) |
-| 🩰✨ Balerina Cece | Sebab-akibat, koordinasi sentuh, kegembiraan | [ballerina-game.html](ballerina-game.html) |
+| 🩰✨ Ballerina Sabrina | Cause-and-effect, touch coordination, joy | [ballerina-game.html](ballerina-game.html) |
 
 ## Tech
 

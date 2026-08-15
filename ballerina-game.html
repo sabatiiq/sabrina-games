@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Balerina Cece! 🩰</title>
+<title>Ballerina Sabrina! 🩰</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   html, body {
@@ -181,7 +181,7 @@
   <div class="star-bg" style="top: 48%; left: 66%; animation-delay: 0.3s;">✨</div>
 
   <div id="hud">
-    <div class="panel"><span class="label">Putaran</span><span id="score">0</span></div>
+    <div class="panel"><span class="label">Twirls</span><span id="score">0</span></div>
   </div>
 
   <div id="stage"></div>
@@ -189,10 +189,10 @@
   <div id="ballerina">🩰</div>
 
   <div id="overlay">
-    <h1>🩰 Balerina Cece! 🩰</h1>
-    <p>Sentuh balerina, dan dia akan berputar! 💃✨</p>
-    <p>Berapa kali kamu bisa membuatnya menari? 🌸</p>
-    <button id="startBtn">Ayo Menari!</button>
+    <h1>🩰 Ballerina Sabrina! 🩰</h1>
+    <p>Touch the ballerina and she will spin! 💃✨</p>
+    <p>How many times can you make her twirl? 🌸</p>
+    <button id="startBtn">Let's Dance!</button>
   </div>
 </div>
 
@@ -207,7 +207,7 @@
   const BAL_W = 130;
   const BAL_H = 130;
   const DANCERS = ['🩰', '💃', '🩰', '💃'];
-  const CHEERS  = ['Wheee!', 'Cantik!', 'Berputar!', 'Hebat!', 'Menari!', 'Yeay!'];
+  const CHEERS  = ['Wheee!', 'Pretty!', 'Spin!', 'Amazing!', 'Twirl!', 'Yay!'];
 
   let state = {
     running: false,
@@ -235,7 +235,7 @@
     if (!('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
-    u.rate = 1.0; u.pitch = 1.5; u.lang = 'id-ID';
+    u.rate = 1.0; u.pitch = 1.5; u.lang = 'en-US';
     window.speechSynthesis.speak(u);
   }
 
