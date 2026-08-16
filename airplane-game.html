@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Sabrina's Sky Adventure! ✈️</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    height: 100%; overflow: hidden;
+    font-family: 'Comic Sans MS', 'Marker Felt', cursive, sans-serif;
+    user-select: none; touch-action: none;
+    background: #8fd3ff;
+  }
+  #view { position: absolute; inset: 0; display: block; }
+
+  #hud {
+    position: absolute; top: 10px; left: 0; right: 0; z-index: 5;
+    display: flex; justify-content: center; gap: 10px; pointer-events: none;
+  }
+  .chip {
+    background: rgba(255,255,255,0.85); border: 3px solid #1e88e5; border-radius: 18px;
+    padding: 6px 18px; font-size: clamp(18px, 4.5vw, 28px); font-weight: bold; color: #0d47a1;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.15);
+  }
+  a.home {
+    position: absolute; top: 12px; left: 12px; z-index: 6;
+    background: rgba(255,255,255,0.7); color: #0d47a1; padding: 6px 11px;
+    text-decoration: none; border-radius: 12px; font-size: 14px; font-weight: bold; pointer-events: auto;
+  }
+  #hint {
+    position: absolute; bottom: 18px; left: 0; right: 0; z-index: 5; text-align: center;
+    color: #0d47a1; font-size: clamp(15px, 3.6vw, 20px); font-weight: bold; pointer-events: none;
+    text-shadow: 0 1px 3px rgba(255,255,255,0.8);
+  }
+
+  #overlay {
+    position: absolute; inset: 0; z-index: 10;
+    background: rgba(20,50,90,0.55);
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .card {
+    background: #eaf6ff; border: 4px solid #42a5f5; border-radius: 26px;
+    padding: 26px 22px; text-align: center; max-width: 480px;
+    box-shadow: 0 14px 40px rgba(0,0,0,0.4);
+  }
+  .card h2 { font-size: clamp(26px, 7vw, 42px); color: #1565c0; margin-bottom: 12px; }
+  .card p { font-size: clamp(16px, 3.6vw, 22px); color: #21446e; margin-bottom: 8px; line-height: 1.5; }
+  .card button {
+    margin-top: 16px; font-family: inherit; font-size: clamp(20px, 5vw, 28px); font-weight: bold;
+    background: #1e88e5; color: #fff; border: none; border-radius: 20px; padding: 14px 34px;
+    cursor: pointer; box-shadow: 0 6px 0 #1565c0;
+  }
+  .card button:active { transform: translateY(3px); box-shadow: 0 3px 0 #1565c0; }
+  .hidden { display: none !important; }
+  .keyhint { font-size: clamp(13px, 3vw, 17px); color: #5c86b0; margin-top: 6px; }
+</style>
+</head>
+<body>
+<a class="home" href="index.html">⌂ Home</a>
+<canvas id="view"></canvas>
+
+<div id="hud">
+  <div class="chip">⭐ <span id="starCount">0</span>/<span id="starTotal">0</span></div>
+</div>
+<div id="hint">✋ Hold to fly up — let go to glide down!</div>
+
+<div id="overlay">
+  <div class="card" id="card">
+    <h2>✈️ Sabrina's Sky Adventure!</h2>
+    <p>Pilot Sabrina is flying across the sky! 🌤️</p>
+    <p><b>Hold down</b> (tap the screen, or press Space) to fly <b>up</b>. <b>Let go</b> to glide gently <b>down</b>.</p>
+    <p>Scoop up stars ⭐, rainbows 🌈, and balloons 🎈, then land on the runway 🛬 at the end!</p>
+    <p class="keyhint">The plane can't crash — just fly and collect. Happy flying! 💙</p>
+    <button id="startBtn">Take Off! ▶</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('view');
+  const ctx = canvas.getContext('2d');
+  const overlay = document.getElementById('overlay');
+  const card = document.getElementById('card');
+  const starCountEl = document.getElementById('starCount');
+  const starTotalEl = document.getElementById('starTotal');
+  const hintEl = document.getElementById('hint');
+
+  let W = 0, H = 0, dpr = 1;
+
+  const WORLD_W = 4000;
+  const GOAL_X = 3850;
+  const PLANE_SPEED = 250;   // px/s forward
+  const GRAV = 900;          // downward accel
+  const LIFT = 1950;         // upward accel while held
+  const MAX_UP = 400, MAX_DOWN = 440;
+
+  let plane, items, clouds, birds, cameraX, running, won, starsGot, starTotal;
+  const input = { fly: false };
+  const fx = [];
+
+  function seaLevel() { return H - 64; }
+  function topLimit() { return 44; }
+
+  // ---------- build collectible trail ----------
+  function buildLevel() {
+    items = [];
+    clouds = [];
+    birds = [];
+    const midY = () => H * 0.5;
+    let count = 0;
+    // wavy trail of stars, with occasional rainbow / balloon
+    for (let x = 320; x < GOAL_X - 120; x += 150) {
+      const y = midY() + Math.sin(x * 0.006) * (H * 0.24);
+      let e = '⭐', kind = 'star';
+      const r = Math.random();
+      if (r < 0.08) { e = '🌈'; kind = 'rainbow'; }
+      else if (r < 0.20) { e = '🎈'; kind = 'balloon'; }
+      items.push({ x, y, e, kind, got: false, bob: Math.random() * 6 });
+      if (kind === 'star') count++;
+    }
+    starTotal = count;
+    starTotalEl.textContent = starTotal;
+    // decorative clouds (parallax) & birds
+    for (let i = 0; i < 26; i++) {
+      clouds.push({ x: Math.random() * WORLD_W, y: 40 + Math.random() * (H * 0.5), s: 0.4 + Math.random() * 0.6, scale: 0.6 + Math.random() * 0.9 });
+    }
+    for (let i = 0; i < 8; i++) {
+      birds.push({ x: Math.random() * WORLD_W, y: 60 + Math.random() * (H * 0.35), ph: Math.random() * 6 });
+    }
+  }
+
+  function resetGame() {
+    buildLevel();
+    plane = { x: 120, y: H * 0.5, vy: 0, angle: 0 };
+    cameraX = 0;
+    starsGot = 0; won = false;
+    starCountEl.textContent = '0';
+    hintEl.classList.remove('hidden');
+  }
+
+  function sizeCanvas() {
+    dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function speak(text, pitch = 1.3) {
+    if (!('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US'; u.rate = 1.0; u.pitch = pitch;
+    speechSynthesis.speak(u);
+  }
+
+  // ---------- loop ----------
+  let lastT = 0;
+  function tick(t) {
+    if (!running) return;
+    const dt = Math.min(0.04, (t - lastT) / 1000 || 0);
+    lastT = t;
+    update(dt);
+    render();
+    requestAnimationFrame(tick);
+  }
+
+  function update(dt) {
+    // forward
+    plane.x += PLANE_SPEED * dt;
+
+    // vertical (jetpack style)
+    plane.vy += (input.fly ? -LIFT : GRAV) * dt;
+    if (!input.fly) plane.vy += 0; // gravity already applied
+    plane.vy = Math.max(-MAX_UP, Math.min(MAX_DOWN, plane.vy));
+    plane.y += plane.vy * dt;
+
+    if (plane.y < topLimit()) { plane.y = topLimit(); plane.vy = 0; }
+    if (plane.y > seaLevel() - 20) { plane.y = seaLevel() - 20; plane.vy = 0; }
+
+    plane.angle = Math.max(-0.5, Math.min(0.5, plane.vy / 700));
+
+    // collect
+    for (const it of items) {
+      if (it.got) continue;
+      if (Math.abs(plane.x - it.x) < 42 && Math.abs(plane.y - it.y) < 42) {
+        it.got = true;
+        sparkle(it.x, it.y, it.kind === 'rainbow' ? '🌟' : '✨');
+        if (it.kind === 'star') {
+          starsGot++; starCountEl.textContent = starsGot;
+          popText('+1', it.x, it.y, '#f9a825');
+          if (starsGot % 5 === 0) speak(starsGot + ' stars!', 1.4);
+        } else if (it.kind === 'rainbow') {
+          popText('Rainbow!', it.x, it.y, '#e91e63');
+          speak('Rainbow!', 1.5);
+        } else {
+          popText('Pop!', it.x, it.y, '#7e57c2');
+        }
+      }
+    }
+
+    // move birds gently
+    for (const b of birds) { b.x -= 30 * dt; if (b.x < cameraX - 80) b.x = cameraX + W + 80; }
+
+    if (!won && plane.x >= GOAL_X) { won = true; winGame(); }
+
+    cameraX = Math.max(0, Math.min(WORLD_W - W, plane.x - W * 0.32));
+
+    // fx
+    for (let i = fx.length - 1; i >= 0; i--) {
+      const p = fx[i]; p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt;
+      if (p.t >= p.life) fx.splice(i, 1);
+    }
+  }
+
+  function sparkle(x, y, ch) { for (let i = 0; i < 7; i++) fx.push({ x, y, ch, vx: (Math.random()-0.5)*130, vy: -70 - Math.random()*90, life: 0.8, t: 0 }); }
+  function popText(txt, x, y, color) { fx.push({ x, y, txt, color, vx: 0, vy: -60, life: 0.9, t: 0 }); }
+
+  // ---------- render ----------
+  function render() {
+    // sky
+    const sky = ctx.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, '#4fc3f7'); sky.addColorStop(0.55, '#9bdcff'); sky.addColorStop(1, '#e3f6ff');
+    ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
+
+    // sun
+    ctx.fillStyle = '#fff59d';
+    ctx.beginPath(); ctx.arc(70, 70, 40, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 0.4; ctx.beginPath(); ctx.arc(70, 70, 54, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+
+    // parallax clouds
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (const c of clouds) {
+      const sx = c.x - cameraX * c.s;
+      const wrapped = ((sx % (W + 200)) + (W + 200)) % (W + 200) - 100;
+      ctx.font = (44 * c.scale) + 'px serif';
+      ctx.globalAlpha = 0.9;
+      ctx.fillText('☁️', wrapped, c.y);
+      ctx.globalAlpha = 1;
+    }
+
+    // birds
+    for (const b of birds) {
+      const sx = b.x - cameraX; if (sx < -40 || sx > W + 40) continue;
+      ctx.font = '22px serif'; ctx.fillText('🐦', sx, b.y + Math.sin(performance.now()/300 + b.ph) * 5);
+    }
+
+    // sea / ground strip
+    ctx.fillStyle = '#4db6ac'; ctx.fillRect(0, seaLevel(), W, H - seaLevel());
+    ctx.fillStyle = '#26a69a'; ctx.fillRect(0, seaLevel(), W, 8);
+
+    // items
+    for (const it of items) {
+      if (it.got) continue;
+      const sx = it.x - cameraX; if (sx < -50 || sx > W + 50) continue;
+      const yy = it.y + Math.sin(performance.now() / 350 + it.bob) * 5;
+      ctx.font = (it.kind === 'rainbow' ? 46 : it.kind === 'balloon' ? 40 : 36) + 'px serif';
+      ctx.fillText(it.e, sx, yy);
+    }
+
+    // runway / airport at the end
+    const gx = GOAL_X - cameraX;
+    if (gx < W + 200) {
+      // landing strip on the sea surface
+      ctx.fillStyle = '#78909c';
+      ctx.fillRect(gx - 40, seaLevel() - 6, 260, 20);
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 4; ctx.setLineDash([16, 12]);
+      ctx.beginPath(); ctx.moveTo(gx - 30, seaLevel() + 4); ctx.lineTo(gx + 210, seaLevel() + 4); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.font = '40px serif'; ctx.textAlign = 'center';
+      ctx.fillText('🛬', gx + 90, seaLevel() - 20);
+      ctx.fillText('🏁', gx - 30, seaLevel() - 24);
+      ctx.font = 'bold 22px "Comic Sans MS", serif'; ctx.fillStyle = '#0d47a1';
+      ctx.fillText('LAND HERE!', gx + 90, seaLevel() - 62);
+    }
+
+    // plane
+    const px = plane.x - cameraX;
+    ctx.save();
+    ctx.translate(px, plane.y);
+    ctx.rotate(plane.angle);
+    ctx.font = '54px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('✈️', 0, 0);
+    ctx.restore();
+    // little trail puff
+    ctx.globalAlpha = 0.5; ctx.font = '20px serif';
+    ctx.fillText('☁️', px - 34, plane.y + 6); ctx.globalAlpha = 1;
+
+    // fx
+    for (const p of fx) {
+      const sx = p.x - cameraX; const a = 1 - p.t / p.life;
+      ctx.globalAlpha = Math.max(0, a);
+      if (p.txt) { ctx.font = 'bold 26px "Comic Sans MS", serif'; ctx.fillStyle = p.color || '#f9a825'; ctx.textAlign = 'center'; ctx.fillText(p.txt, sx, p.y); }
+      else { ctx.font = '24px serif'; ctx.textAlign = 'center'; ctx.fillText(p.ch, sx, p.y); }
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // ---------- win ----------
+  function winGame() {
+    running = false;
+    hintEl.classList.add('hidden');
+    const msg = starsGot >= starTotal ? 'PERFECT FLIGHT — every star! 🌟'
+              : starsGot >= Math.round(starTotal * 0.6) ? 'Great flying, Captain Sabrina! 💪'
+              : 'You landed safely! ✈️';
+    card.innerHTML = `
+      <h2>🛬 Safe landing! ✈️</h2>
+      <p>You collected <strong>${starsGot}</strong> of ${starTotal} stars in the sky!</p>
+      <p>${msg}</p>
+      <button id="againBtn">Fly again ▶</button>`;
+    overlay.classList.remove('hidden');
+    document.getElementById('againBtn').addEventListener('click', start);
+    speak('Safe landing! You collected ' + starsGot + ' stars!', 1.4);
+    // confetti burst
+    for (let i = 0; i < 20; i++) sparkle(plane.x + (Math.random()-0.5)*200, plane.y + (Math.random()-0.5)*160, ['✨','⭐','🎈','🌈'][Math.floor(Math.random()*4)]);
+  }
+
+  function start() {
+    overlay.classList.add('hidden');
+    sizeCanvas();
+    resetGame();
+    running = true;
+    lastT = performance.now();
+    requestAnimationFrame(tick);
+  }
+
+  // ---------- input: hold to fly up ----------
+  function flyOn(e) { input.fly = true; if (e) e.preventDefault(); }
+  function flyOff(e) { input.fly = false; if (e) e.preventDefault(); }
+  canvas.addEventListener('pointerdown', flyOn);
+  window.addEventListener('pointerup', flyOff);
+  canvas.addEventListener('pointercancel', flyOff);
+
+  document.addEventListener('keydown', e => {
+    if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w') { input.fly = true; e.preventDefault(); }
+  });
+  document.addEventListener('keyup', e => {
+    if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w') { input.fly = false; e.preventDefault(); }
+  });
+
+  window.addEventListener('resize', () => { sizeCanvas(); });
+
+  document.getElementById('startBtn').addEventListener('click', start);
+  sizeCanvas();
+})();
+</script>
+</body>
+</html>

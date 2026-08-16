@@ -31,6 +31,7 @@ A little collection of browser games for early learners (age 6 and up). All game
 | 👸❄️ Elsa's Ice Magic | Addition, subtraction, missing numbers, times tables, spelling & phonics | [elsa-ice-magic-game.html](elsa-ice-magic-game.html) |
 | 🍫🍬 Chocolate Factory | Creativity, choices, fine motor skills | [chocolate-factory-game.html](chocolate-factory-game.html) |
 | 🦕🍖 Sabrina's Dino Land | Platforming, coordination, counting the food you collect | [prehistoric-game.html](prehistoric-game.html) |
+| ✈️⭐ Sabrina's Sky Adventure | Flying control, timing, counting the stars you collect | [airplane-game.html](airplane-game.html) |
 
 ## Tech
 
