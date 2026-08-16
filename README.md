@@ -29,6 +29,7 @@ A little collection of browser games for early learners (age 6 and up). All game
 | 🩰✨ Ballerina Sabrina | Cause-and-effect, touch coordination, joy | [ballerina-game.html](ballerina-game.html) |
 | 🌹🎨 Paint a Rose | Colors, creativity, fine motor skills | [paint-rose-game.html](paint-rose-game.html) |
 | 👸❄️ Elsa's Ice Magic | Addition, subtraction, missing numbers, times tables, spelling & phonics | [elsa-ice-magic-game.html](elsa-ice-magic-game.html) |
+| 🍫🍬 Chocolate Factory | Creativity, choices, fine motor skills | [chocolate-factory-game.html](chocolate-factory-game.html) |
 
 ## Tech
 

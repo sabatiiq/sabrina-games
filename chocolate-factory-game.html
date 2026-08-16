@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Chocolate Factory! 🍫</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    min-height: 100%;
+    font-family: 'Comic Sans MS', 'Marker Felt', cursive, sans-serif;
+    background: linear-gradient(180deg, #ffe4c4 0%, #e0a878 45%, #c88a5a 100%);
+    user-select: none;
+    color: #4a2c17;
+    overflow-x: hidden;
+    touch-action: manipulation;
+  }
+  body { padding: 12px 12px 40px; min-height: 100vh; }
+  #app { max-width: 640px; margin: 0 auto; }
+
+  .home {
+    position: fixed; top: 10px; left: 10px; z-index: 20;
+    background: rgba(255,255,255,0.55); color: #6a3b1a; padding: 7px 12px;
+    text-decoration: none; border-radius: 12px; font-size: 15px; font-weight: bold;
+  }
+
+  header { text-align: center; margin-bottom: 8px; }
+  h1 {
+    font-size: clamp(26px, 6.5vw, 46px);
+    color: #fff3e0;
+    text-shadow: 2px 2px 0 #8d5524, 5px 5px 0 rgba(0,0,0,0.18);
+  }
+  .subtitle {
+    font-size: clamp(14px, 3vw, 19px);
+    color: #5a3218;
+    background: rgba(255,255,255,0.7);
+    border: 2px solid #c88a5a;
+    border-radius: 20px; padding: 4px 16px; display: inline-block; margin-top: 4px;
+  }
+  #made { font-weight: bold; }
+
+  .factory {
+    background: rgba(255,255,255,0.92);
+    border-radius: 22px; padding: 14px 12px 18px;
+    box-shadow: 0 10px 24px rgba(90,50,24,0.35);
+    text-align: center;
+    margin-top: 8px;
+  }
+
+  /* The chocolate bar */
+  #bar {
+    display: inline-grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    padding: 10px;
+    border-radius: 14px;
+    background: var(--gap, #5d3720);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.3), inset 0 0 0 3px rgba(255,255,255,0.15);
+    margin: 6px auto 4px;
+    transition: transform 0.3s;
+  }
+  .sq {
+    width: clamp(52px, 15vw, 76px);
+    height: clamp(52px, 15vw, 76px);
+    border-radius: 8px;
+    background: var(--choc, #7b4a2d);
+    box-shadow: inset 0 -5px 0 rgba(0,0,0,0.22), inset 0 5px 0 rgba(255,255,255,0.18);
+    display: flex; align-items: center; justify-content: center;
+    font-size: clamp(28px, 7vw, 40px);
+    cursor: pointer;
+    transition: transform 0.08s;
+  }
+  .sq:active { transform: scale(0.92); }
+  #bar.wrap { animation: wrapAway 0.7s ease-in forwards; }
+  @keyframes wrapAway {
+    0% { transform: scale(1) rotate(0); opacity: 1; }
+    40% { transform: scale(1.08) rotate(-2deg); }
+    100% { transform: scale(0.3) translateY(220px) rotate(8deg); opacity: 0; }
+  }
+
+  .label { font-size: clamp(14px, 3vw, 18px); font-weight: bold; color: #7a4a24; margin: 10px 0 4px; }
+
+  .row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 4px 0; }
+
+  .choc-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 14px; border-radius: 16px; cursor: pointer;
+    font-size: clamp(14px, 3vw, 18px); font-weight: bold; color: #fff;
+    border: 4px solid #fff; box-shadow: 0 3px 0 rgba(0,0,0,0.25);
+    transition: transform 0.1s;
+  }
+  .choc-btn:active { transform: scale(0.94); }
+  .choc-btn.sel { border-color: #333; box-shadow: 0 3px 0 rgba(0,0,0,0.35), 0 0 0 3px #ffd54f; }
+
+  .top-btn {
+    width: clamp(46px, 11vw, 60px); height: clamp(46px, 11vw, 60px);
+    border-radius: 14px; border: 4px solid #fff; background: #fff6ec;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.2);
+    font-size: clamp(24px, 6vw, 32px); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.1s;
+  }
+  .top-btn:active { transform: scale(0.9); }
+  .top-btn.sel { border-color: #333; box-shadow: 0 3px 0 rgba(0,0,0,0.35), 0 0 0 3px #ffd54f; transform: scale(1.08); }
+
+  #wrapBtn {
+    margin-top: 12px; font-family: inherit; font-size: clamp(20px, 4.5vw, 28px); font-weight: bold;
+    background: #ff8f00; border: 4px solid #e65100; border-radius: 22px;
+    padding: 12px 34px; cursor: pointer; box-shadow: 0 5px 0 #bf360c; color: #fff;
+  }
+  #wrapBtn:active { transform: translateY(3px); box-shadow: 0 2px 0 #bf360c; }
+
+  /* Shelf of finished chocolates */
+  #shelfWrap { margin-top: 14px; }
+  #shelfWrap .label { color: #fff3e0; text-shadow: 1px 1px 0 #8d5524; }
+  #shelf {
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
+    min-height: 30px;
+  }
+  .mini {
+    display: inline-grid; grid-template-columns: repeat(4, 1fr); gap: 2px;
+    padding: 4px; border-radius: 7px; background: var(--gap, #5d3720);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    animation: popIn 0.4s ease-out;
+  }
+  @keyframes popIn { 0% { transform: scale(0.2); } 70% { transform: scale(1.15); } 100% { transform: scale(1); } }
+  .mini .msq {
+    width: 15px; height: 15px; border-radius: 3px; background: var(--choc, #7b4a2d);
+    display: flex; align-items: center; justify-content: center; font-size: 11px;
+  }
+
+  .float { position: fixed; top: -30px; z-index: 40; pointer-events: none; font-size: 26px; }
+  @keyframes drop { to { transform: translateY(110vh) rotate(360deg); opacity: 0.3; } }
+</style>
+</head>
+<body>
+<a class="home" href="index.html">⌂ Home</a>
+<div id="app">
+  <header>
+    <h1>🍫 Sabrina's Chocolate Factory!</h1>
+    <div class="subtitle">Made today: <span id="made">0</span> 🍬</div>
+  </header>
+
+  <div class="factory">
+    <div id="bar"></div>
+
+    <div class="label">1. Choose your chocolate 🍫</div>
+    <div class="row" id="baseRow"></div>
+
+    <div class="label">2. Tap toppings onto the bar ✨</div>
+    <div class="row" id="topRow"></div>
+
+    <button id="wrapBtn">Wrap it up! 🎀</button>
+
+    <div id="shelfWrap">
+      <div class="label">🍬 My Chocolate Shelf 🍬</div>
+      <div id="shelf"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const barEl   = document.getElementById('bar');
+  const baseRow = document.getElementById('baseRow');
+  const topRow  = document.getElementById('topRow');
+  const wrapBtn = document.getElementById('wrapBtn');
+  const shelf   = document.getElementById('shelf');
+  const madeEl  = document.getElementById('made');
+
+  const ROWS = 3, COLS = 4, N = ROWS * COLS;
+  let made = 0;
+
+  const BASES = [
+    { key: 'milk',  name: 'Milk',  choc: '#7b4a2d', gap: '#5d3720' },
+    { key: 'dark',  name: 'Dark',  choc: '#3e2417', gap: '#2a1710' },
+    { key: 'white', name: 'White', choc: '#f1e0c6', gap: '#d8c1a0' },
+  ];
+  const TOPPINGS = ['🍓', '🥜', '🫐', '🌰', '⭐', '💗', '🍬', '🌈'];
+  const ERASER = '🧽';
+
+  let base = BASES[0];
+  let topping = TOPPINGS[0];
+
+  function speak(text) {
+    if (!('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US'; u.rate = 1.0; u.pitch = 1.3;
+    speechSynthesis.speak(u);
+  }
+
+  function applyBase() {
+    barEl.style.setProperty('--choc', base.choc);
+    barEl.style.setProperty('--gap', base.gap);
+  }
+
+  function buildBar() {
+    barEl.innerHTML = '';
+    barEl.classList.remove('wrap');
+    applyBase();
+    for (let i = 0; i < N; i++) {
+      const sq = document.createElement('div');
+      sq.className = 'sq';
+      sq.addEventListener('click', () => {
+        if (topping === ERASER || sq.textContent === topping) sq.textContent = '';
+        else { sq.textContent = topping; }
+      });
+      barEl.appendChild(sq);
+    }
+  }
+
+  // base buttons
+  const baseBtns = [];
+  BASES.forEach((b, i) => {
+    const btn = document.createElement('div');
+    btn.className = 'choc-btn' + (i === 0 ? ' sel' : '');
+    btn.style.background = b.choc;
+    if (b.key === 'white') btn.style.color = '#6a3b1a';
+    btn.innerHTML = '🍫 ' + b.name;
+    btn.addEventListener('click', () => {
+      base = b;
+      applyBase();
+      baseBtns.forEach(x => x.classList.remove('sel'));
+      btn.classList.add('sel');
+      speak(b.name + ' chocolate!');
+    });
+    baseRow.appendChild(btn);
+    baseBtns.push(btn);
+  });
+
+  // topping buttons + eraser
+  const topBtns = [];
+  [...TOPPINGS, ERASER].forEach((t, i) => {
+    const btn = document.createElement('div');
+    btn.className = 'top-btn' + (i === 0 ? ' sel' : '');
+    btn.textContent = t;
+    btn.addEventListener('click', () => {
+      topping = t;
+      topBtns.forEach(x => x.classList.remove('sel'));
+      btn.classList.add('sel');
+    });
+    topRow.appendChild(btn);
+    topBtns.push(btn);
+  });
+
+  function addToShelf() {
+    const mini = document.createElement('div');
+    mini.className = 'mini';
+    mini.style.setProperty('--choc', base.choc);
+    mini.style.setProperty('--gap', base.gap);
+    barEl.querySelectorAll('.sq').forEach(sq => {
+      const m = document.createElement('div');
+      m.className = 'msq';
+      m.textContent = sq.textContent;
+      mini.appendChild(m);
+    });
+    shelf.appendChild(mini);
+  }
+
+  function chocolateRain() {
+    const bits = ['🍫', '🍬', '🍓', '⭐', '💗', '🥜', '🌈'];
+    for (let i = 0; i < 22; i++) {
+      const c = document.createElement('div');
+      c.className = 'float';
+      c.textContent = bits[Math.floor(Math.random() * bits.length)];
+      c.style.left = Math.random() * 100 + 'vw';
+      c.style.animation = `drop ${1 + Math.random() * 1.4}s linear forwards`;
+      document.body.appendChild(c);
+      setTimeout(() => c.remove(), 2600);
+    }
+  }
+
+  wrapBtn.addEventListener('click', () => {
+    addToShelf();
+    made++;
+    madeEl.textContent = made;
+    chocolateRain();
+    speak('Yummy! You made chocolate number ' + made + '!');
+    barEl.classList.add('wrap');
+    setTimeout(buildBar, 720);
+  });
+
+  buildBar();
+})();
+</script>
+</body>
+</html>
