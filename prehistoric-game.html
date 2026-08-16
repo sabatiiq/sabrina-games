@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Sabrina's Dino Land! 🦕</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    height: 100%; overflow: hidden;
+    font-family: 'Comic Sans MS', 'Marker Felt', cursive, sans-serif;
+    user-select: none; touch-action: none;
+    background: #8fd3ff;
+  }
+  #view { position: absolute; inset: 0; display: block; }
+
+  #hud {
+    position: absolute; top: 10px; left: 0; right: 0; z-index: 5;
+    display: flex; justify-content: center; gap: 10px; pointer-events: none;
+  }
+  .chip {
+    background: rgba(255,255,255,0.85); border: 3px solid #f57f17; border-radius: 18px;
+    padding: 6px 18px; font-size: clamp(18px, 4.5vw, 28px); font-weight: bold; color: #6a3b0a;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.15);
+  }
+  a.home {
+    position: absolute; top: 12px; left: 12px; z-index: 6;
+    background: rgba(255,255,255,0.7); color: #6a3b1a; padding: 6px 11px;
+    text-decoration: none; border-radius: 12px; font-size: 14px; font-weight: bold; pointer-events: auto;
+  }
+
+  /* touch controls */
+  #controls { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+  .btn {
+    position: absolute; bottom: 22px;
+    width: clamp(66px, 17vw, 92px); height: clamp(66px, 17vw, 92px);
+    border-radius: 50%; background: rgba(255,255,255,0.55);
+    border: 5px solid rgba(255,255,255,0.85);
+    display: flex; align-items: center; justify-content: center;
+    font-size: clamp(30px, 8vw, 44px); color: #5a3218; font-weight: bold;
+    pointer-events: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+    touch-action: none;
+  }
+  .btn:active { transform: scale(0.92); background: rgba(255,255,255,0.8); }
+  #bLeft  { left: 20px; }
+  #bRight { left: calc(40px + clamp(66px, 17vw, 92px)); }
+  #bJump  { right: 24px; width: clamp(80px, 20vw, 110px); height: clamp(80px, 20vw, 110px);
+            background: rgba(255,213,79,0.7); border-color: #fff; }
+
+  #overlay {
+    position: absolute; inset: 0; z-index: 10;
+    background: rgba(40,60,20,0.55);
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .card {
+    background: #fff8e1; border: 4px solid #ffb300; border-radius: 26px;
+    padding: 26px 22px; text-align: center; max-width: 480px;
+    box-shadow: 0 14px 40px rgba(0,0,0,0.4);
+  }
+  .card h2 { font-size: clamp(26px, 7vw, 42px); color: #e65100; margin-bottom: 12px; }
+  .card p { font-size: clamp(16px, 3.6vw, 22px); color: #5d4037; margin-bottom: 8px; line-height: 1.5; }
+  .card button {
+    margin-top: 16px; font-family: inherit; font-size: clamp(20px, 5vw, 28px); font-weight: bold;
+    background: #43a047; color: #fff; border: none; border-radius: 20px; padding: 14px 34px;
+    cursor: pointer; box-shadow: 0 6px 0 #2e7d32;
+  }
+  .card button:active { transform: translateY(3px); box-shadow: 0 3px 0 #2e7d32; }
+  .hidden { display: none !important; }
+  .keyhint { font-size: clamp(13px, 3vw, 17px); color: #8d6e63; margin-top: 6px; }
+</style>
+</head>
+<body>
+<a class="home" href="index.html">⌂ Home</a>
+<canvas id="view"></canvas>
+
+<div id="hud">
+  <div class="chip">🍖 <span id="foodCount">0</span>/<span id="foodTotal">12</span></div>
+</div>
+
+<div id="controls">
+  <div class="btn" id="bLeft">◀</div>
+  <div class="btn" id="bRight">▶</div>
+  <div class="btn" id="bJump">⬆</div>
+</div>
+
+<div id="overlay">
+  <div class="card" id="card">
+    <h2>🦕 Sabrina's Dino Land!</h2>
+    <p>Help cave-girl Sabrina 👧 run and jump through Dino Land!</p>
+    <p>Collect yummy fruit and drumsticks 🍎🍇🍗🍖, and <b>bounce</b> on the friendly dinos 🦕 — they're springy, not scary! Reach the cave 🕳️ at the end.</p>
+    <p class="keyhint">Move: ◀ ▶ buttons or Arrow keys &nbsp;•&nbsp; Jump: ⬆ button, Space, or ↑</p>
+    <button id="startBtn">Let's Explore! ▶</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('view');
+  const ctx = canvas.getContext('2d');
+  const overlay = document.getElementById('overlay');
+  const card = document.getElementById('card');
+  const foodCountEl = document.getElementById('foodCount');
+  const foodTotalEl = document.getElementById('foodTotal');
+
+  let W = 0, H = 0, dpr = 1;
+  const GROUND_H = 90;   // thickness of the ground strip
+
+  // ---------- Level layout (world coordinates, x in px) ----------
+  const WORLD_W = 3120;
+  const GOAL_X = 2930;
+
+  // platforms: x, w, up = height of top surface above the ground line
+  const PLATFORMS = [
+    { x: 500,  w: 180, up: 120 },
+    { x: 820,  w: 150, up: 205 },
+    { x: 1150, w: 200, up: 130 },
+    { x: 1600, w: 170, up: 200 },
+    { x: 1950, w: 160, up: 120 },
+    { x: 2350, w: 200, up: 180 },
+  ];
+
+  // foods: x, up (0 = on ground), e = emoji
+  const FOOD_DEFS = [
+    { x: 300,  up: 0,   e: '🍎' },
+    { x: 575,  up: 158, e: '🍇' },
+    { x: 700,  up: 0,   e: '🍌' },
+    { x: 890,  up: 245, e: '🍗' },
+    { x: 1050, up: 0,   e: '🍄' },
+    { x: 1235, up: 170, e: '🍖' },
+    { x: 1400, up: 0,   e: '🥚' },
+    { x: 1675, up: 240, e: '🍗' },
+    { x: 1850, up: 0,   e: '🍎' },
+    { x: 2020, up: 160, e: '🍇' },
+    { x: 2200, up: 0,   e: '🍌' },
+    { x: 2440, up: 220, e: '🍖' },
+  ];
+
+  // friendly bouncy dinos: patrol between x0..x1 on the ground
+  const DINO_DEFS = [
+    { x0: 360,  x1: 640,  speed: 60, e: '🦕' },
+    { x0: 1260, x1: 1520, speed: 75, e: '🦕' },
+    { x0: 2050, x1: 2300, speed: 65, e: '🦕' },
+  ];
+
+  // decorative ferns/palms along the ground
+  const DECOR = [
+    { x: 180, e: '🌴' }, { x: 760, e: '🌿' }, { x: 1000, e: '🌴' },
+    { x: 1480, e: '🌿' }, { x: 1780, e: '🌴' }, { x: 2280, e: '🌿' }, { x: 2700, e: '🌴' },
+  ];
+
+  const HERO_SIZE = 52;
+  const MOVE = 275;      // px/s
+  const GRAV = 2100;     // px/s^2
+  const JUMP = 820;      // px/s
+
+  let hero, foods, dinos, cameraX, running, won, foodGot;
+  let lastGiggle = 0;
+
+  const input = { left: false, right: false, jump: false };
+  let jumpQueued = false;
+
+  function groundTop() { return H - GROUND_H; }
+
+  function resetLevel() {
+    hero = { x: 120, feet: groundTop(), vy: 0, onGround: true, dir: 1 };
+    foods = FOOD_DEFS.map(f => ({ ...f, got: false }));
+    dinos = DINO_DEFS.map(d => ({ ...d, x: d.x0, dir: 1, e: d.e }));
+    cameraX = 0;
+    foodGot = 0;
+    won = false;
+    foodCountEl.textContent = '0';
+    foodTotalEl.textContent = FOOD_DEFS.length;
+  }
+
+  function sizeCanvas() {
+    dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function speak(text, pitch = 1.3) {
+    if (!('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US'; u.rate = 1.0; u.pitch = pitch;
+    speechSynthesis.speak(u);
+  }
+
+  // ---------- update ----------
+  let lastT = 0;
+  function tick(t) {
+    if (!running) return;
+    const dt = Math.min(0.04, (t - lastT) / 1000 || 0);
+    lastT = t;
+    update(dt);
+    render();
+    requestAnimationFrame(tick);
+  }
+
+  function update(dt) {
+    const g = groundTop();
+
+    // horizontal
+    let dir = 0;
+    if (input.left) dir -= 1;
+    if (input.right) dir += 1;
+    hero.x += dir * MOVE * dt;
+    if (dir !== 0) hero.dir = dir;
+    hero.x = Math.max(HERO_SIZE / 2, Math.min(WORLD_W - HERO_SIZE / 2, hero.x));
+
+    // jump
+    if ((input.jump || jumpQueued) && hero.onGround) {
+      hero.vy = -JUMP; hero.onGround = false;
+    }
+    jumpQueued = false;
+
+    // gravity
+    const prevFeet = hero.feet;
+    hero.vy += GRAV * dt;
+    hero.feet += hero.vy * dt;
+    hero.onGround = false;
+
+    // main ground
+    if (hero.feet >= g) { hero.feet = g; hero.vy = 0; hero.onGround = true; }
+
+    // one-way platforms (land only when falling from above)
+    const halfW = HERO_SIZE * 0.4;
+    for (const p of PLATFORMS) {
+      const top = g - p.up;
+      if (hero.x + halfW > p.x && hero.x - halfW < p.x + p.w) {
+        if (hero.vy >= 0 && prevFeet <= top + 4 && hero.feet >= top) {
+          hero.feet = top; hero.vy = 0; hero.onGround = true;
+        }
+      }
+    }
+
+    // dinos patrol + bounce
+    for (const d of dinos) {
+      d.x += d.dir * d.speed * dt;
+      if (d.x <= d.x0) { d.x = d.x0; d.dir = 1; }
+      if (d.x >= d.x1) { d.x = d.x1; d.dir = -1; }
+      const dTop = g - 44;
+      const dx = Math.abs(hero.x - d.x);
+      const heroBodyTop = hero.feet - HERO_SIZE;
+      if (dx < 40 && hero.feet > dTop - 6 && heroBodyTop < g) {
+        // springy bounce!
+        hero.vy = -JUMP * 0.72; hero.onGround = false;
+        if (performance.now() - lastGiggle > 900) {
+          lastGiggle = performance.now();
+          sparkle(d.x, dTop - 10, '💫');
+          speak('Boing!', 1.5);
+        }
+        // nudge apart so we don't stick
+        hero.x += (hero.x < d.x ? -14 : 14);
+      }
+    }
+
+    // collect food
+    for (const f of foods) {
+      if (f.got) continue;
+      const fy = g - f.up - 26;
+      if (Math.abs(hero.x - f.x) < 40 && Math.abs((hero.feet - HERO_SIZE / 2) - fy) < 46) {
+        f.got = true; foodGot++;
+        foodCountEl.textContent = foodGot;
+        sparkle(f.x, fy, '✨');
+        popText('+1', f.x, fy);
+        if (foodGot % 3 === 0) speak('Yummy! ' + foodGot + ' foods!', 1.4);
+      }
+    }
+
+    // reach goal
+    if (!won && hero.x >= GOAL_X) { won = true; winGame(); }
+
+    // camera follows hero
+    cameraX = Math.max(0, Math.min(WORLD_W - W, hero.x - W * 0.38));
+  }
+
+  // ---------- floating effects (canvas-space, world coords) ----------
+  const fx = [];
+  function sparkle(x, y, ch) { for (let i = 0; i < 6; i++) fx.push({ x, y, ch, vx: (Math.random()-0.5)*120, vy: -80 - Math.random()*90, life: 0.8, t: 0 }); }
+  function popText(txt, x, y) { fx.push({ x, y, txt, vx: 0, vy: -60, life: 0.9, t: 0 }); }
+  function updateFx(dt) {
+    for (let i = fx.length - 1; i >= 0; i--) {
+      const p = fx[i]; p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt;
+      if (p.t >= p.life) fx.splice(i, 1);
+    }
+  }
+
+  // ---------- render ----------
+  function render() {
+    updateFx(0.016);
+    const g = groundTop();
+
+    // sky
+    const sky = ctx.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, '#aee3ff'); sky.addColorStop(0.6, '#d6f0ff'); sky.addColorStop(1, '#f4e6c8');
+    ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
+
+    // sun
+    ctx.fillStyle = '#ffe082';
+    ctx.beginPath(); ctx.arc(W - 80, 80, 42, 0, Math.PI * 2); ctx.fill();
+
+    // far hills (parallax slow)
+    drawHills(cameraX * 0.3, g, '#bfe3a0', 150, 380);
+    drawHills(cameraX * 0.5, g, '#a5d488', 110, 250);
+
+    // volcano landmark (parallax)
+    drawVolcano(1500 - cameraX * 0.5, g);
+
+    // ground strip
+    ctx.fillStyle = '#c68a4a'; ctx.fillRect(0, g, W, GROUND_H);
+    ctx.fillStyle = '#6cbb3c'; ctx.fillRect(0, g, W, 16);
+    ctx.fillStyle = '#5aa32f'; ctx.fillRect(0, g + 16, W, 4);
+
+    // decor ferns
+    ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+    for (const d of DECOR) {
+      const sx = d.x - cameraX;
+      if (sx < -60 || sx > W + 60) continue;
+      ctx.font = '46px serif';
+      ctx.fillText(d.e, sx, g + 6);
+    }
+
+    // platforms (rock ledges)
+    for (const p of PLATFORMS) {
+      const sx = p.x - cameraX; const top = g - p.up;
+      if (sx + p.w < -20 || sx > W + 20) continue;
+      roundRect(sx, top, p.w, 26, 10, '#9e7b53');
+      ctx.fillStyle = '#6cbb3c'; roundRectFill(sx, top, p.w, 9, 5);
+    }
+
+    // foods
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = '38px serif';
+    for (const f of foods) {
+      if (f.got) continue;
+      const sx = f.x - cameraX; if (sx < -40 || sx > W + 40) continue;
+      const fy = g - f.up - 26;
+      ctx.save();
+      ctx.translate(sx, fy + Math.sin(performance.now() / 300 + f.x) * 4);
+      ctx.fillText(f.e, 0, 0);
+      ctx.restore();
+    }
+
+    // dinos
+    ctx.font = '58px serif';
+    for (const d of dinos) {
+      const sx = d.x - cameraX; if (sx < -60 || sx > W + 60) continue;
+      ctx.save();
+      ctx.translate(sx, g + 4);
+      if (d.dir < 0) ctx.scale(-1, 1);
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillText(d.e, 0, 0);
+      ctx.restore();
+    }
+
+    // goal cave
+    const gx = GOAL_X - cameraX;
+    if (gx < W + 120) {
+      ctx.font = '30px serif'; ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'center';
+      // little hill
+      ctx.fillStyle = '#8d6e63';
+      ctx.beginPath(); ctx.moveTo(gx - 90, g); ctx.quadraticCurveTo(gx, g - 150, gx + 90, g); ctx.fill();
+      // cave mouth
+      ctx.fillStyle = '#2e2018';
+      ctx.beginPath(); ctx.ellipse(gx, g - 6, 44, 54, 0, Math.PI, 0, true); ctx.fill();
+      ctx.fillRect(gx - 44, g - 6, 88, 6);
+      ctx.font = '34px serif';
+      ctx.fillText('🚩', gx + 60, g - 96);
+    }
+
+    // hero (cave-girl)
+    const hx = hero.x - cameraX;
+    const bob = hero.onGround && (input.left || input.right) ? Math.sin(performance.now() / 90) * 3 : 0;
+    ctx.save();
+    ctx.translate(hx, hero.feet - HERO_SIZE / 2 + bob);
+    if (hero.dir < 0) ctx.scale(-1, 1);
+    ctx.font = HERO_SIZE + 'px serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('👧', 0, 0);
+    // little bone club
+    ctx.font = (HERO_SIZE * 0.55) + 'px serif';
+    ctx.fillText('🦴', HERO_SIZE * 0.42, HERO_SIZE * 0.05);
+    ctx.restore();
+
+    // effects
+    for (const p of fx) {
+      const sx = p.x - cameraX; const a = 1 - p.t / p.life;
+      ctx.globalAlpha = Math.max(0, a);
+      if (p.txt) { ctx.font = 'bold 30px "Comic Sans MS", serif'; ctx.fillStyle = '#e65100'; ctx.textAlign = 'center'; ctx.fillText(p.txt, sx, p.y); }
+      else { ctx.font = '26px serif'; ctx.textAlign = 'center'; ctx.fillText(p.ch, sx, p.y); }
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  function drawHills(off, g, color, h, span) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(-50, g);
+    let x = -((off) % span) - span;
+    for (; x < W + span; x += span) {
+      ctx.quadraticCurveTo(x + span / 2, g - h, x + span, g);
+    }
+    ctx.lineTo(W + 50, g); ctx.lineTo(W + 50, g + 4); ctx.lineTo(-50, g + 4);
+    ctx.closePath(); ctx.fill();
+  }
+
+  function drawVolcano(sx, g) {
+    if (sx < -200 || sx > W + 200) return;
+    ctx.fillStyle = '#7a5a44';
+    ctx.beginPath();
+    ctx.moveTo(sx - 150, g); ctx.lineTo(sx - 40, g - 220);
+    ctx.lineTo(sx + 40, g - 220); ctx.lineTo(sx + 150, g); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#e64a19';
+    ctx.beginPath(); ctx.moveTo(sx - 40, g - 220); ctx.lineTo(sx + 40, g - 220);
+    ctx.lineTo(sx + 20, g - 245); ctx.lineTo(sx + 5, g - 225);
+    ctx.lineTo(sx - 12, g - 250); ctx.lineTo(sx - 28, g - 228); ctx.closePath(); ctx.fill();
+  }
+
+  function roundRect(x, y, w, h, r, fill) {
+    ctx.fillStyle = fill;
+    roundRectFill(x, y, w, h, r);
+  }
+  function roundRectFill(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath(); ctx.fill();
+  }
+
+  // ---------- win ----------
+  function winGame() {
+    running = false;
+    const msg = foodGot >= FOOD_DEFS.length ? 'WOW — you found EVERY food! 🌟'
+              : foodGot >= 8 ? 'Great exploring, Sabrina! 💪' : 'You made it to the cave! 🎉';
+    card.innerHTML = `
+      <h2>🕳️ You reached the cave! 🦕</h2>
+      <p>You collected <strong>${foodGot}</strong> of ${FOOD_DEFS.length} yummy foods!</p>
+      <p>${msg}</p>
+      <button id="againBtn">Play again ▶</button>`;
+    overlay.classList.remove('hidden');
+    document.getElementById('againBtn').addEventListener('click', start);
+    speak('Hooray! You reached the cave with ' + foodGot + ' foods!', 1.4);
+  }
+
+  function start() {
+    overlay.classList.add('hidden');
+    sizeCanvas();
+    resetLevel();
+    running = true;
+    lastT = performance.now();
+    requestAnimationFrame(tick);
+  }
+
+  // ---------- input ----------
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft'  || e.key === 'a') input.left = true;
+    if (e.key === 'ArrowRight' || e.key === 'd') input.right = true;
+    if (e.key === 'ArrowUp' || e.key === ' ' || e.key === 'w') { if (!input.jump) jumpQueued = true; input.jump = true; e.preventDefault(); }
+  });
+  document.addEventListener('keyup', e => {
+    if (e.key === 'ArrowLeft'  || e.key === 'a') input.left = false;
+    if (e.key === 'ArrowRight' || e.key === 'd') input.right = false;
+    if (e.key === 'ArrowUp' || e.key === ' ' || e.key === 'w') input.jump = false;
+  });
+
+  function bindBtn(id, on, off) {
+    const el = document.getElementById(id);
+    const start = e => { e.preventDefault(); on(); };
+    const end   = e => { e.preventDefault(); off(); };
+    el.addEventListener('pointerdown', start);
+    el.addEventListener('pointerup', end);
+    el.addEventListener('pointerleave', end);
+    el.addEventListener('pointercancel', end);
+  }
+  bindBtn('bLeft',  () => input.left = true,  () => input.left = false);
+  bindBtn('bRight', () => input.right = true, () => input.right = false);
+  bindBtn('bJump',  () => { jumpQueued = true; input.jump = true; }, () => input.jump = false);
+
+  window.addEventListener('resize', () => { const wasGround = hero ? hero.feet >= groundTop() - 1 : true; sizeCanvas(); if (hero && wasGround) hero.feet = groundTop(); });
+
+  document.getElementById('startBtn').addEventListener('click', start);
+  sizeCanvas();
+})();
+</script>
+</body>
+</html>
