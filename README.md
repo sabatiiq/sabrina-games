@@ -28,6 +28,7 @@ A little collection of browser games for early learners (age 6 and up). All game
 | 🧁🫐 Muffin Bakery | Sequencing & following simple multi-step instructions (ages 3-5) | [muffin-game.html](muffin-game.html) |
 | 🩰✨ Ballerina Sabrina | Cause-and-effect, touch coordination, joy | [ballerina-game.html](ballerina-game.html) |
 | 🌹🎨 Paint a Rose | Colors, creativity, fine motor skills | [paint-rose-game.html](paint-rose-game.html) |
+| 👸❄️ Elsa's Ice Magic | Addition, subtraction, missing numbers, times tables, spelling & phonics | [elsa-ice-magic-game.html](elsa-ice-magic-game.html) |
 
 ## Tech
 

@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Elsa's Ice Magic! 👸❄️</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    min-height: 100%;
+    font-family: 'Comic Sans MS', 'Marker Felt', cursive, sans-serif;
+    background: radial-gradient(circle at 30% 12%, #dff2ff 0%, #a9d6f5 38%, #6ab0e6 68%, #4a76c4 100%);
+    user-select: none;
+    color: #10305a;
+    overflow-x: hidden;
+  }
+  body { padding: 16px 14px 50px; min-height: 100vh; position: relative; }
+  #app { max-width: 780px; margin: 0 auto; position: relative; z-index: 2; }
+
+  .snow { position: fixed; top: -20px; font-size: 18px; z-index: 0; pointer-events: none; opacity: 0.85; }
+  @keyframes snowfall { to { transform: translateY(108vh) rotate(360deg); } }
+
+  .home {
+    position: fixed; top: 12px; left: 12px; z-index: 20;
+    background: rgba(255,255,255,0.5); color: #16407a; padding: 7px 12px;
+    text-decoration: none; border-radius: 12px; font-size: 15px; font-weight: bold;
+  }
+
+  header { text-align: center; margin-bottom: 10px; }
+  h1 {
+    font-size: clamp(28px, 7vw, 50px);
+    color: #fff;
+    text-shadow: 0 0 12px #9ad4ff, 3px 3px 0 #4a76c4, 6px 6px 0 rgba(0,0,0,0.2);
+  }
+  .subtitle {
+    font-size: clamp(14px, 3vw, 20px);
+    color: #16407a;
+    background: rgba(255,255,255,0.7);
+    border: 2px solid #9ad4ff;
+    border-radius: 20px; padding: 5px 16px; display: inline-block; margin-top: 6px;
+  }
+
+  #hud { display: flex; justify-content: center; gap: 12px; margin: 8px 0 6px; flex-wrap: wrap; }
+  .chip {
+    background: rgba(255,255,255,0.7); border: 2px solid #9ad4ff;
+    border-radius: 18px; padding: 6px 16px; font-size: clamp(15px, 3vw, 20px); font-weight: bold; color: #16407a;
+  }
+  .tag { display:inline-block; font-size: clamp(13px,2.6vw,16px); font-weight:bold; padding:3px 12px; border-radius:14px; }
+  .tag.math { background:#ede7f6; color:#5e35b1; border:2px solid #b39ddb; }
+  .tag.eng  { background:#e3f2fd; color:#1565c0; border:2px solid #90caf9; }
+
+  /* Journey to the ice castle */
+  #journey {
+    position: relative; height: 66px; margin: 6px 4px 14px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.35), rgba(154,212,255,0.25));
+    border: 2px solid rgba(255,255,255,0.7); border-radius: 40px;
+  }
+  #track {
+    position: absolute; left: 54px; right: 52px; top: 50%; height: 0;
+    border-top: 3px dashed rgba(255,255,255,0.9);
+  }
+  #mountain { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); font-size: 38px; }
+  #castle  { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); font-size: 40px;
+    filter: drop-shadow(0 0 10px rgba(200,235,255,0.9)); }
+  #elsa {
+    position: absolute; top: 50%; font-size: 34px; left: 54px;
+    transform: translate(-50%, -50%);
+    transition: left 0.9s cubic-bezier(.34,1.3,.5,1);
+  }
+
+  .stage {
+    background: rgba(255,255,255,0.96);
+    border-radius: 24px; padding: 16px 14px 22px;
+    box-shadow: 0 10px 26px rgba(30,60,120,0.35);
+    text-align: center; color: #21324e;
+  }
+
+  #picture { font-size: clamp(56px, 15vw, 104px); line-height: 1.1; margin-bottom: 2px; }
+  #prompt { font-size: clamp(20px, 5vw, 30px); font-weight: bold; color: #3949ab; margin-bottom: 6px; }
+  #equation { font-size: clamp(34px, 9vw, 58px); font-weight: bold; color: #1565c0; margin: 4px 0 8px; letter-spacing: 2px; }
+
+  #speakBtn {
+    background: #e3f2fd; border: 3px solid #90caf9; border-radius: 16px;
+    font-size: 20px; padding: 4px 14px; cursor: pointer; margin-bottom: 10px; font-family: inherit; color:#1565c0;
+  }
+
+  .word-row, .tray {
+    display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 10px 0;
+  }
+  .lb {
+    width: clamp(44px, 11.5vw, 64px); height: clamp(50px, 13vw, 72px);
+    border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-size: clamp(25px, 6.8vw, 38px); font-weight: bold; color: #fff; text-transform: uppercase;
+    box-shadow: inset 0 -7px 0 rgba(0,0,0,0.2), inset 0 5px 0 rgba(255,255,255,0.3), 0 3px 4px rgba(0,0,0,0.25);
+    position: relative;
+  }
+  .lb .eyes { position: absolute; top: 6px; display: flex; gap: 20%; width: 60%; justify-content: center; }
+  .lb .eyes i { width: 9px; height: 9px; background: #fff; border-radius: 50%; box-shadow: 0 0 0 2px rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center; }
+  .lb .eyes i::after { content: ''; width: 4px; height: 4px; background: #222; border-radius: 50%; }
+  .lb .ch { margin-top: 10px; }
+
+  .slot {
+    width: clamp(44px, 11.5vw, 64px); height: clamp(50px, 13vw, 72px);
+    border-radius: 12px; border: 3px dashed #64b5f6; background: rgba(100,181,246,0.12);
+    display: flex; align-items: center; justify-content: center;
+    font-size: clamp(25px, 6.8vw, 38px); font-weight: bold; text-transform: uppercase; color: #1976d2;
+  }
+  .slot.filled { border-style: solid; }
+
+  /* Math answer crystals */
+  .crystal {
+    min-width: clamp(64px, 18vw, 96px); height: clamp(58px, 15vw, 82px);
+    padding: 0 10px; border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: clamp(28px, 7vw, 44px); font-weight: bold; color: #fff;
+    background: linear-gradient(160deg, #64b5f6, #1976d2);
+    box-shadow: inset 0 -6px 0 rgba(0,0,0,0.18), inset 0 5px 0 rgba(255,255,255,0.35), 0 4px 6px rgba(0,0,0,0.25);
+    cursor: pointer; transition: transform 0.08s;
+  }
+  .crystal:active { transform: translateY(3px); }
+  .crystal.wrong { filter: grayscale(0.7); opacity: 0.4; pointer-events: none; }
+
+  .tray .lb { cursor: pointer; transition: transform 0.08s; }
+  .tray .lb:active { transform: translateY(3px); }
+  .tray .lb.used { opacity: 0.25; pointer-events: none; }
+  .choice-lb { cursor: pointer; }
+  .choice-lb.wrong { filter: grayscale(0.7); opacity: 0.4; pointer-events: none; }
+  .shake { animation: shake 0.4s; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-7px)} 40%{transform:translateX(7px)} 60%{transform:translateX(-5px)} 80%{transform:translateX(5px)} }
+
+  #feedback { min-height: 30px; font-size: clamp(18px, 4vw, 26px); font-weight: bold; margin-top: 10px; }
+
+  #nextBtn {
+    margin-top: 12px; font-family: inherit; font-size: clamp(18px, 4vw, 26px);
+    background: #7e57c2; border: 4px solid #5e35b1; border-radius: 20px;
+    padding: 10px 30px; cursor: pointer; box-shadow: 0 5px 0 #4527a0; color: #fff; font-weight: bold;
+  }
+  #nextBtn:active { transform: translateY(3px); box-shadow: 0 2px 0 #4527a0; }
+  #nextBtn[disabled] { opacity: 0.4; pointer-events: none; }
+
+  #overlay {
+    position: fixed; inset: 0; background: rgba(20,45,95,0.7); z-index: 30;
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .card {
+    background: #eaf5ff; border: 3px solid #9ad4ff;
+    border-radius: 26px; padding: 26px 22px; text-align: center;
+    max-width: 480px; box-shadow: 0 14px 40px rgba(0,0,0,0.4);
+  }
+  .card h2 { font-size: clamp(24px, 6vw, 38px); color: #1565c0; margin-bottom: 12px; }
+  .card p { font-size: clamp(16px, 3.4vw, 22px); color: #21446e; margin-bottom: 8px; line-height: 1.5; }
+  .card button {
+    margin-top: 18px; font-family: inherit; font-size: clamp(20px, 4.4vw, 28px); font-weight: bold;
+    background: #7e57c2; color: #fff; border: none; border-radius: 20px; padding: 14px 34px;
+    cursor: pointer; box-shadow: 0 6px 0 #4527a0;
+  }
+  .card button:active { transform: translateY(3px); box-shadow: 0 3px 0 #4527a0; }
+  .hidden { display: none !important; }
+
+  .confetti { position: fixed; top: -20px; font-size: 22px; z-index: 40; pointer-events: none; }
+  @keyframes fall { to { transform: translateY(105vh) rotate(540deg); opacity: 0.4; } }
+</style>
+</head>
+<body>
+<a class="home" href="index.html">⌂ Home</a>
+<div id="app">
+  <header>
+    <h1>👸❄️ Elsa's Ice Magic!</h1>
+    <div class="subtitle">Answer math &amp; word puzzles to reach the Ice Castle!</div>
+  </header>
+
+  <div id="hud">
+    <div class="chip">❄️ <span id="flakes">0</span></div>
+    <div class="chip">Step <span id="round">1</span>/10</div>
+  </div>
+
+  <div id="journey">
+    <div id="track"></div>
+    <div id="mountain">🏔️</div>
+    <div id="elsa">👸</div>
+    <div id="castle">🏰</div>
+  </div>
+
+  <div class="stage">
+    <div id="tagRow"><span class="tag math" id="tag">Math</span></div>
+    <div id="picture">❄️</div>
+    <div id="prompt">Ready to help Elsa?</div>
+    <div id="equation" class="hidden"></div>
+    <button id="speakBtn">🔊 Say it again</button>
+    <div class="word-row" id="wordRow"></div>
+    <div class="tray" id="tray"></div>
+    <div id="feedback"></div>
+    <button id="nextBtn" disabled>Next ▶</button>
+  </div>
+</div>
+
+<div id="overlay">
+  <div class="card">
+    <h2>👸❄️ Elsa's Ice Magic!</h2>
+    <p>Help Queen Elsa build her sparkling Ice Castle! 🏰</p>
+    <p>Each step is a puzzle — sometimes <b>math</b> (adding, taking away, missing numbers) and sometimes <b>words</b> (missing letters and spelling). Every correct answer sends a burst of ice magic and moves Elsa closer to her castle!</p>
+    <p>10 steps to the castle. Ready, Sabrina? ❄️💙</p>
+    <button id="startBtn">Let it go — start! ▶</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const tagEl = document.getElementById('tag');
+  const pictureEl = document.getElementById('picture');
+  const promptEl = document.getElementById('prompt');
+  const equationEl = document.getElementById('equation');
+  const wordRow = document.getElementById('wordRow');
+  const tray = document.getElementById('tray');
+  const feedbackEl = document.getElementById('feedback');
+  const nextBtn = document.getElementById('nextBtn');
+  const flakesEl = document.getElementById('flakes');
+  const roundEl = document.getElementById('round');
+  const overlay = document.getElementById('overlay');
+  const speakBtn = document.getElementById('speakBtn');
+  const elsaEl = document.getElementById('elsa');
+
+  const TOTAL = 10;
+  let round = 0, flakes = 0, current = null, answered = false;
+
+  // Winter / Frozen vocabulary for age 6
+  const WORDS = [
+    { w: 'ice',    e: '🧊' }, { w: 'snow',   e: '❄️' }, { w: 'elsa',   e: '👸' },
+    { w: 'olaf',   e: '⛄' }, { w: 'anna',   e: '👧' }, { w: 'cold',   e: '🥶' },
+    { w: 'star',   e: '⭐' }, { w: 'sled',   e: '🛷' }, { w: 'cape',   e: '🧥' },
+    { w: 'crown',  e: '👑' }, { w: 'magic',  e: '✨' }, { w: 'winter', e: '🌨️' },
+    { w: 'frozen', e: '🧊' }, { w: 'castle', e: '🏰' }, { w: 'queen',  e: '👑' },
+    { w: 'skate',  e: '⛸️' },
+  ];
+
+  // Which puzzle each step is. Alternate math / english; english alternates missing / spell.
+  const PLAN = ['math','eng-missing','math','eng-spell','math','eng-missing','math','eng-spell','math','eng-spell'];
+
+  const letterColor = ch => `hsl(${((ch.charCodeAt(0) - 97) * 37) % 360}, 68%, 52%)`;
+  const rand = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
+  const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+  function speak(text, rate = 0.92) {
+    if (!('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US'; u.rate = rate; u.pitch = 1.15;
+    speechSynthesis.speak(u);
+  }
+  function spellOut(word) {
+    if (!('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    word.split('').forEach((ch) => {
+      const u = new SpeechSynthesisUtterance(ch);
+      u.lang = 'en-US'; u.rate = 0.8; u.pitch = 1.2; speechSynthesis.speak(u);
+    });
+    const wu = new SpeechSynthesisUtterance(word);
+    wu.lang = 'en-US'; wu.rate = 0.85; wu.pitch = 1.1; speechSynthesis.speak(wu);
+  }
+
+  function moveElsa(progress) {
+    const p = Math.max(0, Math.min(1, progress));
+    elsaEl.style.left = `calc(54px + (100% - 106px) * ${p})`;
+  }
+
+  function letterBlock(ch, cls = 'lb') {
+    const el = document.createElement('div');
+    el.className = cls;
+    el.style.background = letterColor(ch);
+    el.innerHTML = '<div class="eyes"><i></i><i></i></div><div class="ch">' + ch + '</div>';
+    el.dataset.ch = ch;
+    return el;
+  }
+
+  let roundWords = [];
+  function pickWords() {
+    const short = shuffle(WORDS.filter(x => x.w.length <= 4).slice());
+    const long  = shuffle(WORDS.filter(x => x.w.length >= 5).slice());
+    const chosen = [];
+    // english steps are indexes 1,3,5,7,9 → 5 words
+    for (let i = 0; i < 5; i++) {
+      const pool = (i >= 3 && long.length) ? long : short;
+      chosen.push(pool.length ? pool.pop() : (short.length ? short.pop() : long.pop()));
+    }
+    return chosen;
+  }
+
+  // ---------- MATH ----------
+  const FROZEN_FACES = ['❄️','⛄','👸','🧊','✨','🦌','🏰','💙'];
+  function makeMathProblem(step) {
+    // Sabrina works within 100 — difficulty grows across the 5 math steps (0,2,4,6,8)
+    const level = Math.floor(step / 2);       // 0..4
+    const maxN = [20, 40, 60, 80, 100][level]; // sums/values stay within these caps
+    // later steps can also be a gentle times-table (×2, ×5, ×10)
+    const kinds = level >= 3 ? ['add','sub','missing','times'] : ['add','sub','missing'];
+    const kind = kinds[rand(0, kinds.length - 1)];
+    let a, b, answer, text;
+    if (kind === 'add') {
+      a = rand(2, maxN - 2); b = rand(1, maxN - a); answer = a + b; text = `${a} + ${b} = ?`;
+    } else if (kind === 'sub') {
+      a = rand(3, maxN); b = rand(1, a - 1); answer = a - b; text = `${a} − ${b} = ?`;
+    } else if (kind === 'times') {
+      b = [2, 5, 10][rand(0, 2)]; a = rand(2, 10); answer = a * b; text = `${a} × ${b} = ?`;
+    } else { // missing addend:  a + ? = c
+      a = rand(1, maxN - 2); const c = rand(a + 1, maxN); answer = c - a; text = `${a} + ? = ${c}`;
+    }
+    return {
+      text, answer,
+      spoken: text.replace('+', 'plus').replace('−', 'minus').replace('×', 'times').replace('=', 'equals').replace('?', 'what')
+    };
+  }
+
+  function setupMath(step) {
+    const prob = makeMathProblem(step);
+    current.answer = prob.answer;
+    current.spoken = prob.spoken;
+    tagEl.textContent = 'Math'; tagEl.className = 'tag math';
+    pictureEl.textContent = FROZEN_FACES[step % FROZEN_FACES.length];
+    promptEl.textContent = 'Help Elsa solve it!';
+    equationEl.textContent = prob.text;
+    equationEl.classList.remove('hidden');
+
+    const choices = new Set([prob.answer]);
+    const spread = Math.max(3, Math.round(prob.answer * 0.2)); // bigger numbers → wider distractors
+    while (choices.size < 4) {
+      let d = prob.answer + rand(-spread, spread);
+      if (d < 0) d = Math.abs(d) + 1;
+      if (d !== prob.answer) choices.add(d);
+    }
+    shuffle([...choices]).forEach(n => {
+      const c = document.createElement('div');
+      c.className = 'crystal';
+      c.textContent = n;
+      c.addEventListener('click', () => onPickMath(c, n));
+      tray.appendChild(c);
+    });
+    setTimeout(() => speak('What is ' + prob.spoken.replace(' what', '') + '?'), 300);
+  }
+
+  function onPickMath(btn, n) {
+    if (answered) return;
+    if (n === current.answer) {
+      answered = true; nextBtn.disabled = false;
+      tray.querySelectorAll('.crystal').forEach(c => c.style.pointerEvents = 'none');
+      onCorrect('The answer is ' + current.answer + '!');
+    } else {
+      btn.classList.add('wrong', 'shake');
+      setTimeout(() => btn.classList.remove('shake'), 400);
+      speak('Try again!');
+    }
+  }
+
+  // ---------- ENGLISH: missing letter ----------
+  function setupMissing(item) {
+    const word = item.w;
+    const blank = rand(0, word.length - 1);
+    current.w = word; current.blank = blank;
+    tagEl.textContent = 'Words'; tagEl.className = 'tag eng';
+    pictureEl.textContent = item.e;
+    equationEl.classList.add('hidden');
+    promptEl.textContent = 'Which letter is missing?';
+    word.split('').forEach((ch, i) => {
+      if (i === blank) {
+        const slot = document.createElement('div');
+        slot.className = 'slot'; slot.id = 'blankSlot';
+        wordRow.appendChild(slot);
+      } else wordRow.appendChild(letterBlock(ch));
+    });
+    const correct = word[blank];
+    const set = new Set([correct]);
+    const alpha = 'abcdefghijklmnopqrstuvwxyz';
+    while (set.size < 4) set.add(alpha[rand(0, 25)]);
+    shuffle([...set]).forEach(ch => {
+      const b = letterBlock(ch, 'lb choice-lb');
+      b.addEventListener('click', () => onPickMissing(b, ch));
+      tray.appendChild(b);
+    });
+    setTimeout(() => speak('Which letter is missing in ' + word + '?'), 320);
+  }
+  function onPickMissing(btn, ch) {
+    if (answered) return;
+    const word = current.w, blank = current.blank;
+    if (ch === word[blank]) {
+      answered = true; nextBtn.disabled = false;
+      tray.querySelectorAll('.choice-lb').forEach(c => c.style.pointerEvents = 'none');
+      const slot = document.getElementById('blankSlot');
+      slot.className = 'slot filled';
+      slot.style.background = letterColor(ch); slot.style.color = '#fff'; slot.style.borderColor = letterColor(ch);
+      slot.textContent = ch; btn.classList.add('used');
+      onCorrect(word.toUpperCase() + '!', word);
+    } else {
+      btn.classList.add('wrong', 'shake');
+      setTimeout(() => btn.classList.remove('shake'), 400);
+      speak('Try again!');
+    }
+  }
+
+  // ---------- ENGLISH: spell the word ----------
+  function setupSpell(item) {
+    const word = item.w;
+    current.w = word; current.next = 0;
+    tagEl.textContent = 'Words'; tagEl.className = 'tag eng';
+    pictureEl.textContent = item.e;
+    equationEl.classList.add('hidden');
+    promptEl.textContent = 'Spell the word! Tap letters in order.';
+    word.split('').forEach((ch, i) => {
+      const slot = document.createElement('div');
+      slot.className = 'slot'; slot.dataset.i = i;
+      wordRow.appendChild(slot);
+    });
+    shuffle(word.split('')).forEach((ch) => {
+      const b = letterBlock(ch, 'lb');
+      b.addEventListener('click', () => onTapTile(b, ch));
+      tray.appendChild(b);
+    });
+    setTimeout(() => speak('Can you spell ' + word + '?'), 320);
+  }
+  function onTapTile(btn, ch) {
+    if (answered || btn.classList.contains('used')) return;
+    const word = current.w, need = word[current.next];
+    if (ch === need) {
+      const slot = wordRow.querySelector('.slot[data-i="' + current.next + '"]');
+      slot.className = 'slot filled';
+      slot.style.background = letterColor(ch); slot.style.color = '#fff'; slot.style.borderColor = letterColor(ch);
+      slot.textContent = ch; btn.classList.add('used');
+      current.next++;
+      if (current.next >= word.length) {
+        answered = true; nextBtn.disabled = false;
+        onCorrect(word.toUpperCase() + '!', word);
+      } else speak(ch);
+    } else {
+      btn.classList.add('shake');
+      setTimeout(() => btn.classList.remove('shake'), 400);
+      speak('The next letter is ' + need + '.');
+    }
+  }
+
+  // ---------- shared ----------
+  function onCorrect(msg, word) {
+    flakes++; flakesEl.textContent = flakes;
+    moveElsa((round + 1) / TOTAL);
+    feedbackEl.style.color = '#1565c0';
+    const last = round + 1 >= TOTAL;
+    feedbackEl.textContent = (last ? '🏰 ' : '❄️ ') + msg + (last ? ' Elsa reached her castle!' : ' Ice magic!');
+    burstConfetti();
+    if (word) spellOut(word); else speak('Correct! ' + msg);
+  }
+
+  function showRound() {
+    answered = false;
+    nextBtn.disabled = true;
+    feedbackEl.textContent = '';
+    roundEl.textContent = round + 1;
+    wordRow.innerHTML = ''; tray.innerHTML = '';
+    equationEl.classList.add('hidden');
+    moveElsa(round / TOTAL);
+    current = {};
+    const mode = PLAN[round];
+    if (mode === 'math') {
+      const mathStep = round; // 0,2,4,6,8
+      setupMath(mathStep);
+    } else {
+      // english word index: count how many english steps came before
+      const engIndex = PLAN.slice(0, round).filter(m => m.startsWith('eng')).length;
+      const item = roundWords[engIndex];
+      if (mode === 'eng-missing') setupMissing(item);
+      else setupSpell(item);
+    }
+  }
+
+  speakBtn.addEventListener('click', () => {
+    if (!current) return;
+    const mode = PLAN[round];
+    if (mode === 'math') speak('What is ' + (current.spoken || '').replace(' what', '') + '?');
+    else if (current.w) spellOut(current.w);
+  });
+
+  nextBtn.addEventListener('click', () => {
+    round++;
+    if (round >= TOTAL) return endGame();
+    showRound();
+  });
+
+  function endGame() {
+    moveElsa(1);
+    const msg = flakes >= 9 ? 'SNOW QUEEN GENIUS! 👑✨'
+              : flakes >= 6 ? 'Wonderful work, Sabrina! 💙'
+              : 'Great try — play again to earn more ice magic! ❄️';
+    overlay.querySelector('.card').innerHTML = `
+      <h2>🏰 The Ice Castle is built! ❄️</h2>
+      <p>You helped Elsa with math and words, and earned <strong>${flakes}</strong> of ${TOTAL} snowflakes.</p>
+      <p>${msg}</p>
+      <button id="startBtn">Play again ▶</button>`;
+    overlay.classList.remove('hidden');
+    document.getElementById('startBtn').addEventListener('click', start);
+    burstConfetti(); setTimeout(burstConfetti, 300); setTimeout(burstConfetti, 600);
+  }
+
+  function start() {
+    overlay.classList.add('hidden');
+    round = 0; flakes = 0;
+    flakesEl.textContent = 0;
+    roundWords = pickWords();
+    moveElsa(0);
+    showRound();
+  }
+
+  function burstConfetti() {
+    const emojis = ['❄️','⛄','👸','✨','💙','💜','🧊','⭐','🏰'];
+    for (let i = 0; i < 26; i++) {
+      const c = document.createElement('div');
+      c.className = 'confetti';
+      c.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      c.style.left = Math.random() * 100 + 'vw';
+      c.style.animation = `fall ${1 + Math.random() * 1.4}s linear forwards`;
+      document.body.appendChild(c);
+      setTimeout(() => c.remove(), 2600);
+    }
+  }
+
+  // gentle background snowfall
+  (function snowfield() {
+    const flakesArr = ['❄️','❅','❆','･'];
+    for (let i = 0; i < 26; i++) {
+      const s = document.createElement('div');
+      s.className = 'snow';
+      s.textContent = flakesArr[Math.floor(Math.random() * flakesArr.length)];
+      s.style.left = Math.random() * 100 + 'vw';
+      s.style.fontSize = (12 + Math.random() * 16) + 'px';
+      s.style.animation = `snowfall ${6 + Math.random() * 7}s linear ${Math.random() * 6}s infinite`;
+      document.body.appendChild(s);
+    }
+  })();
+
+  document.getElementById('startBtn').addEventListener('click', start);
+})();
+</script>
+</body>
+</html>
