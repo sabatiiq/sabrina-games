@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sabrina's Movie Theater! 🎬</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    min-height: 100%;
+    font-family: 'Comic Sans MS', 'Marker Felt', cursive, sans-serif;
+    background: radial-gradient(circle at 50% 0%, #6a1b3a 0%, #3d1030 45%, #23091f 100%);
+    user-select: none; color: #ffe8c2; overflow-x: hidden;
+  }
+  body { padding: 12px 12px 40px; min-height: 100vh; }
+  #app { max-width: 720px; margin: 0 auto; }
+
+  .home {
+    position: fixed; top: 10px; left: 10px; z-index: 20;
+    background: rgba(255,255,255,0.2); color: #fff; padding: 7px 12px;
+    text-decoration: none; border-radius: 12px; font-size: 14px; font-weight: bold;
+  }
+
+  header { text-align: center; margin-bottom: 6px; }
+  h1 {
+    font-size: clamp(24px, 6vw, 42px); color: #ffd54f;
+    text-shadow: 2px 2px 0 #7a1030, 4px 4px 0 rgba(0,0,0,0.35);
+  }
+  #hud { display: flex; justify-content: center; gap: 10px; margin: 4px 0; flex-wrap: wrap; }
+  .chip {
+    background: rgba(255,255,255,0.14); border: 2px solid #ffd54f; border-radius: 18px;
+    padding: 5px 16px; font-size: clamp(15px, 3.6vw, 22px); font-weight: bold; color: #ffe8c2;
+  }
+
+  /* Movie screen */
+  #screen {
+    margin: 8px auto 4px; max-width: 560px;
+    background: linear-gradient(180deg, #fff8e1 0%, #ffe0b2 100%);
+    border: 6px solid #ffd54f; border-radius: 14px;
+    padding: 10px; text-align: center;
+    box-shadow: 0 0 34px rgba(255,213,79,0.55), 0 10px 20px rgba(0,0,0,0.5);
+  }
+  #movie { font-size: clamp(40px, 11vw, 68px); line-height: 1; }
+  #nowPlaying { color: #7a1030; font-weight: bold; font-size: clamp(13px, 3vw, 18px); }
+
+  /* Seats */
+  #theater { margin: 12px auto 6px; max-width: 620px; }
+  .seat-row { display: flex; align-items: center; justify-content: center; gap: clamp(5px, 1.6vw, 9px); margin: 6px 0; }
+  .rowlabel {
+    width: clamp(26px, 6vw, 34px); text-align: center; font-weight: bold; color: #ffd54f;
+    font-size: clamp(18px, 4.5vw, 26px);
+  }
+  .seat {
+    width: clamp(38px, 11vw, 56px); height: clamp(38px, 11vw, 56px);
+    border-radius: 10px 10px 6px 6px;
+    background: linear-gradient(180deg, #c2185b, #7a1030);
+    border: 2px solid #ff80ab;
+    box-shadow: inset 0 -5px 0 rgba(0,0,0,0.3), 0 3px 4px rgba(0,0,0,0.4);
+    display: flex; align-items: center; justify-content: center;
+    font-size: clamp(18px, 5vw, 30px); color: #ffd7e6; font-weight: bold;
+    cursor: pointer; transition: transform 0.08s;
+  }
+  .seat:active { transform: scale(0.92); }
+  .seat.occupied { background: linear-gradient(180deg, #8e24aa, #4a148c); border-color: #ce93d8; cursor: default; }
+  .seat.bad { animation: shake 0.4s; }
+  .seat.hint { box-shadow: inset 0 -5px 0 rgba(0,0,0,0.3), 0 0 0 4px #ffd54f, 0 3px 4px rgba(0,0,0,0.4); }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
+
+  /* Customer + ticket */
+  #desk {
+    background: rgba(255,255,255,0.1); border: 2px solid rgba(255,213,79,0.6);
+    border-radius: 20px; padding: 10px 14px; margin: 8px auto 0; max-width: 520px;
+    display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap;
+  }
+  #customer { font-size: clamp(44px, 12vw, 66px); }
+  #ticket {
+    background: #fff3c4; color: #7a1030; border: 3px dashed #e65100; border-radius: 14px;
+    padding: 8px 16px; text-align: center;
+  }
+  #ticket .tt { font-size: clamp(12px, 2.6vw, 15px); font-weight: bold; letter-spacing: 1px; }
+  #ticket .seatinfo { font-size: clamp(22px, 5.5vw, 32px); font-weight: bold; }
+  #sayBtn {
+    background: #ffd54f; border: 3px solid #f9a825; border-radius: 14px;
+    font-size: 20px; padding: 6px 14px; cursor: pointer; font-family: inherit; color: #7a1030;
+  }
+  #feedback { text-align: center; min-height: 26px; font-size: clamp(16px, 3.6vw, 22px); font-weight: bold; margin-top: 8px; }
+
+  #overlay {
+    position: fixed; inset: 0; background: rgba(20,5,20,0.75); z-index: 30;
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .card {
+    background: #2d0b26; border: 3px solid #ffd54f; border-radius: 26px;
+    padding: 26px 22px; text-align: center; max-width: 480px; box-shadow: 0 14px 40px rgba(0,0,0,0.6);
+  }
+  .card h2 { font-size: clamp(24px, 6.5vw, 40px); color: #ffd54f; margin-bottom: 12px; }
+  .card p { font-size: clamp(16px, 3.6vw, 22px); color: #ffe8c2; margin-bottom: 8px; line-height: 1.5; }
+  .card button {
+    margin-top: 16px; font-family: inherit; font-size: clamp(20px, 5vw, 28px); font-weight: bold;
+    background: #e65100; color: #fff; border: none; border-radius: 20px; padding: 14px 34px;
+    cursor: pointer; box-shadow: 0 6px 0 #bf360c;
+  }
+  .card button:active { transform: translateY(3px); box-shadow: 0 3px 0 #bf360c; }
+  .hidden { display: none !important; }
+
+  .confetti { position: fixed; top: -20px; font-size: 22px; z-index: 40; pointer-events: none; }
+  @keyframes fall { to { transform: translateY(105vh) rotate(540deg); opacity: 0.4; } }
+</style>
+</head>
+<body>
+<a class="home" href="index.html">⌂ Home</a>
+<div id="app">
+  <header><h1>🎬 Sabrina's Movie Theater! 🍿</h1></header>
+
+  <div id="hud">
+    <div class="chip">🎟️ Seated <span id="seated">0</span>/<span id="total">10</span></div>
+  </div>
+
+  <div id="screen">
+    <div id="movie">🦕</div>
+    <div id="nowPlaying">NOW PLAYING</div>
+  </div>
+
+  <div id="theater"></div>
+
+  <div id="desk">
+    <div id="customer">🧒</div>
+    <div id="ticket">
+      <div class="tt">🎟️ ADMIT ONE</div>
+      <div class="seatinfo" id="seatinfo">Row A · Seat 1</div>
+    </div>
+    <button id="sayBtn">🔊 Say it</button>
+  </div>
+
+  <div id="feedback"></div>
+</div>
+
+<div id="overlay">
+  <div class="card" id="card">
+    <h2>🎬 Sabrina's Movie Theater!</h2>
+    <p>You are the movie usher! 🎟️ Each movie-goer has a ticket with a <b>Row</b> (a letter) and a <b>Seat number</b>.</p>
+    <p>Read the ticket, then tap the right seat to sit them down. Fill the theater before the movie starts! 🍿</p>
+    <p>Ready, Sabrina? 💫</p>
+    <button id="startBtn">Open the doors! ▶</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const theater = document.getElementById('theater');
+  const seatedEl = document.getElementById('seated');
+  const totalEl = document.getElementById('total');
+  const seatInfoEl = document.getElementById('seatinfo');
+  const customerEl = document.getElementById('customer');
+  const feedbackEl = document.getElementById('feedback');
+  const overlay = document.getElementById('overlay');
+  const card = document.getElementById('card');
+  const movieEl = document.getElementById('movie');
+  const nowPlayingEl = document.getElementById('nowPlaying');
+  const sayBtn = document.getElementById('sayBtn');
+
+  const ROWS = ['A', 'B', 'C', 'D'];
+  const PER = 5;                    // seats per row
+  const TOTAL = 10;                 // customers to seat
+  const AUDIENCE = ['🧒','👦','👧','🧑','👵','👴','🐻','🦊','🐰','🐼','👩','👨','🐨','🐯'];
+  const MOVIES = [
+    ['🦕', 'DINO ADVENTURE'], ['🚀', 'SPACE BLAST'], ['🧜‍♀️', 'MERMAID SONG'],
+    ['🦄', 'UNICORN MAGIC'], ['🐻', 'BEAR PICNIC'], ['👸', 'ICE PRINCESS'],
+  ];
+
+  let seats = {};      // key "A3" -> element
+  let occupied = {};   // key -> true
+  let target = null;   // {row, num}
+  let seated = 0, hintTimer = null;
+
+  const rand = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
+
+  function speak(text, pitch = 1.2) {
+    if (!('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US'; u.rate = 0.95; u.pitch = pitch;
+    speechSynthesis.speak(u);
+  }
+
+  function buildTheater() {
+    theater.innerHTML = '';
+    seats = {}; occupied = {};
+    ROWS.forEach(r => {
+      const rowEl = document.createElement('div');
+      rowEl.className = 'seat-row';
+      const lbl = document.createElement('div');
+      lbl.className = 'rowlabel'; lbl.textContent = r;
+      rowEl.appendChild(lbl);
+      for (let n = 1; n <= PER; n++) {
+        const s = document.createElement('div');
+        s.className = 'seat';
+        s.textContent = n;
+        s.dataset.row = r; s.dataset.num = n;
+        s.addEventListener('click', () => onSeat(r, n, s));
+        rowEl.appendChild(s);
+        seats[r + n] = s;
+      }
+      theater.appendChild(rowEl);
+    });
+  }
+
+  function newCustomer() {
+    clearHint();
+    // pick a random empty seat
+    const empty = [];
+    ROWS.forEach(r => { for (let n = 1; n <= PER; n++) if (!occupied[r + n]) empty.push({ row: r, num: n }); });
+    if (empty.length === 0 || seated >= TOTAL) return endGame();
+    target = empty[rand(0, empty.length - 1)];
+    customerEl.textContent = AUDIENCE[rand(0, AUDIENCE.length - 1)];
+    seatInfoEl.textContent = 'Row ' + target.row + ' · Seat ' + target.num;
+    feedbackEl.textContent = '';
+    sayTicket();
+    // gentle hint if they take a while
+    hintTimer = setTimeout(() => {
+      const s = seats[target.row + target.num];
+      if (s) s.classList.add('hint');
+    }, 6000);
+  }
+
+  function sayTicket() {
+    speak('Please find Row ' + target.row + ', seat ' + target.num + '.');
+  }
+  function clearHint() {
+    if (hintTimer) { clearTimeout(hintTimer); hintTimer = null; }
+    Object.values(seats).forEach(s => s.classList.remove('hint'));
+  }
+
+  function onSeat(r, n, el) {
+    if (!target || occupied[r + n]) return;
+    if (r === target.row && n === target.num) {
+      occupied[r + n] = true;
+      el.classList.add('occupied');
+      el.textContent = customerEl.textContent;
+      seated++;
+      seatedEl.textContent = seated;
+      feedbackEl.style.color = '#a5d6a7';
+      feedbackEl.textContent = '🍿 Enjoy the movie! Row ' + r + ', seat ' + n + '!';
+      popcorn();
+      speak('Yes! Row ' + r + ', seat ' + n + '. Enjoy the movie!', 1.35);
+      clearHint();
+      if (seated >= TOTAL) return setTimeout(endGame, 700);
+      setTimeout(newCustomer, 900);
+    } else {
+      el.classList.add('bad');
+      setTimeout(() => el.classList.remove('bad'), 400);
+      feedbackEl.style.color = '#ffab91';
+      feedbackEl.textContent = 'That is Row ' + r + ', seat ' + n + '. Look for Row ' + target.row + ', seat ' + target.num + '!';
+      speak('Oops! Look for Row ' + target.row + ', seat ' + target.num + '.');
+    }
+  }
+
+  sayBtn.addEventListener('click', () => { if (target) sayTicket(); });
+
+  function endGame() {
+    clearHint();
+    const [emo, title] = MOVIES[rand(0, MOVIES.length - 1)];
+    movieEl.textContent = emo; nowPlayingEl.textContent = 'NOW PLAYING: ' + title;
+    card.innerHTML = `
+      <h2>🎬 The movie is starting! 🍿</h2>
+      <p>Great job, usher Sabrina! You seated <strong>${seated}</strong> happy movie-goers.</p>
+      <p>Lights down… enjoy the show! 🌟</p>
+      <button id="againBtn">Show another movie ▶</button>`;
+    overlay.classList.remove('hidden');
+    document.getElementById('againBtn').addEventListener('click', start);
+    speak('The movie is starting! Great job, Sabrina!', 1.35);
+    popcorn(); setTimeout(popcorn, 300); setTimeout(popcorn, 600);
+  }
+
+  function start() {
+    overlay.classList.add('hidden');
+    seated = 0; seatedEl.textContent = 0; totalEl.textContent = TOTAL;
+    const [emo, title] = MOVIES[rand(0, MOVIES.length - 1)];
+    movieEl.textContent = emo; nowPlayingEl.textContent = 'NOW PLAYING: ' + title;
+    buildTheater();
+    newCustomer();
+  }
+
+  function popcorn() {
+    const bits = ['🍿', '🎟️', '⭐', '🎬', '💛', '✨'];
+    for (let i = 0; i < 22; i++) {
+      const c = document.createElement('div');
+      c.className = 'confetti';
+      c.textContent = bits[Math.floor(Math.random() * bits.length)];
+      c.style.left = Math.random() * 100 + 'vw';
+      c.style.animation = `fall ${1 + Math.random() * 1.4}s linear forwards`;
+      document.body.appendChild(c);
+      setTimeout(() => c.remove(), 2600);
+    }
+  }
+
+  document.getElementById('startBtn').addEventListener('click', start);
+})();
+</script>
+</body>
+</html>
