@@ -34,6 +34,7 @@ A little collection of browser games for early learners (age 6 and up), made by 
 | 📸🦁 Sabrina's Photo Safari | Aiming & tapping, animal names, collecting all 8 photos | [photo-game.html](photo-game.html) |
 | 🏎️🌈 Sabrina's Race Car | Steering & coordination, collecting, dodging cones | [car-game.html](car-game.html) |
 | 💄✨ Sabrina's Makeup Salon | Creativity, colors, fine motor skills (sandbox) | [makeup-game.html](makeup-game.html) |
+| 💄🎉 Sabrina's Makeup Party | Reading wishes, matching colors & items, helping friends | [makeup-party-game.html](makeup-party-game.html) |
 
 ## Tech
 
