@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="sa-logo.png">
 <title>Sabrina's Game Room! 🎀🎮</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -18,6 +19,13 @@
   header {
     text-align: center;
     margin-bottom: 30px;
+  }
+  .logo {
+    width: clamp(88px, 15vw, 128px);
+    height: auto;
+    border-radius: 28%;
+    box-shadow: 0 0 0 6px #fff, 0 12px 26px rgba(0,0,0,0.28);
+    margin-bottom: 14px;
   }
   h1 {
     font-size: clamp(40px, 9vw, 80px);
@@ -158,6 +166,7 @@
 <body>
 <div id="app">
   <header>
+    <img class="logo" src="sa-logo.png" alt="Sabrina's Game Room logo">
     <h1>🎀 Sabrina's Game Room! 🎮</h1>
     <div class="subtitle">Pick a game and let's play!</div>
   </header>
