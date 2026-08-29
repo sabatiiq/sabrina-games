@@ -1,6 +1,6 @@
-# Bear's Game Land 🐻🍪
+# Sabrina's Game Room 🎀🎮
 
-A little collection of browser games for early learners (age 6 and up). All games share a friendly Bear character and a cookie theme.
+A little collection of browser games for early learners (age 6 and up), made by Sabrina.
 
 **Live site:** https://sabatiiq.github.io/games/
 
@@ -15,9 +15,6 @@ A little collection of browser games for early learners (age 6 and up). All game
 | 👩‍🍳 Cookie Bakery | Sequencing, following multi-step instructions | [baking-game.html](baking-game.html) |
 | 👨‍👩‍👧‍👦 Bear's Family | Family vocabulary, matching, listening | [family-game.html](family-game.html) |
 | 🌳 Park Snacks | Animal names, what each one eats, matching | [park-game.html](park-game.html) |
-| 👧 Cece Belajar Perkalian | Multiplication (in Bahasa Indonesia), arrays, missing factor | [kali-game.html](kali-game.html) |
-| 🦄 Unicorn Cece | Catch-the-falling-items arcade game (in Bahasa Indonesia), reflexes | [unicorn-game.html](unicorn-game.html) |
-| 🧁 Cupcake Unicorn Cece | Creative cupcake-decorating sandbox (in Bahasa Indonesia) | [cupcake-game.html](cupcake-game.html) |
 | 🧮 Number Blocks | Counting, addition, subtraction, doubling, next number (medium) | [number-blocks-game.html](number-blocks-game.html) |
 | 🔤 Alpha Blocks | Phonics & spelling — missing letter and spell-the-word (medium) | [alpha-blocks-game.html](alpha-blocks-game.html) |
 | 🤖 Robot Coder | Programming logic for kids — sequence arrow commands to guide a robot to the goal (ages 6+) | [robot-coder-game.html](robot-coder-game.html) |
