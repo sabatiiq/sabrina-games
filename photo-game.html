@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Sabrina's Photo Safari! 📸</title>
+<link rel="icon" type="image/png" href="sa-logo.png">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    height: 100%; overflow: hidden;
+    font-family: 'Comic Sans MS', 'Marker Felt', cursive, sans-serif;
+    user-select: none; touch-action: none;
+    background: #ffcc80;
+  }
+  #view { position: absolute; inset: 0; display: block; }
+
+  #hud {
+    position: absolute; top: 10px; left: 0; right: 0; z-index: 5;
+    display: flex; justify-content: center; gap: 10px; pointer-events: none;
+  }
+  .chip {
+    background: rgba(255,255,255,0.85); border: 3px solid #00838f; border-radius: 18px;
+    padding: 6px 18px; font-size: clamp(18px, 4.5vw, 28px); font-weight: bold; color: #004d40;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.15);
+  }
+  a.home {
+    position: absolute; top: 12px; left: 12px; z-index: 6;
+    background: rgba(255,255,255,0.75); color: #004d40; padding: 6px 11px;
+    text-decoration: none; border-radius: 12px; font-size: 14px; font-weight: bold; pointer-events: auto;
+  }
+  #hint {
+    position: absolute; bottom: 132px; left: 0; right: 0; z-index: 5; text-align: center;
+    color: #004d40; font-size: clamp(15px, 3.6vw, 20px); font-weight: bold; pointer-events: none;
+    text-shadow: 0 1px 3px rgba(255,255,255,0.8);
+  }
+
+  /* photo album strip along the bottom */
+  #album {
+    position: absolute; bottom: 0; left: 0; right: 0; z-index: 6;
+    display: flex; justify-content: center; align-content: flex-start;
+    flex-wrap: wrap; gap: 8px;
+    padding: 10px 12px 12px; min-height: 118px;
+    background: rgba(255,255,255,0.35);
+    overflow-x: auto; overflow-y: hidden;
+  }
+  .polaroid {
+    background: #fff; border-radius: 6px; padding: 4px 4px 2px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    transform: rotate(-3deg);
+    animation: dropIn 0.45s backwards;
+    flex: 0 0 auto;
+  }
+  .polaroid:nth-child(even) { transform: rotate(3deg); }
+  .polaroid img { width: 68px; height: 51px; display: block; border-radius: 3px; }
+  .polaroid .cap {
+    font-size: 11px; font-weight: bold; color: #00695c; text-align: center;
+    line-height: 1.3; padding-top: 1px; max-width: 72px; overflow: hidden; white-space: nowrap;
+  }
+  @keyframes dropIn {
+    0%   { transform: scale(0) rotate(-20deg); opacity: 0; }
+    70%  { transform: scale(1.15) rotate(5deg); }
+    100% { transform: scale(1) rotate(-3deg); opacity: 1; }
+  }
+
+  #flash {
+    position: absolute; inset: 0; z-index: 8; background: #fff;
+    opacity: 0; pointer-events: none; transition: opacity 0.35s ease-out;
+  }
+  #flash.on { opacity: 0.95; transition: none; }
+
+  #overlay {
+    position: absolute; inset: 0; z-index: 10;
+    background: rgba(0,60,70,0.55);
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .card {
+    background: #e8f7f4; border: 4px solid #26a69a; border-radius: 26px;
+    padding: 26px 22px; text-align: center; max-width: 480px;
+    box-shadow: 0 14px 40px rgba(0,0,0,0.4);
+  }
+  .card h2 { font-size: clamp(26px, 7vw, 42px); color: #00796b; margin-bottom: 12px; }
+  .card p { font-size: clamp(16px, 3.6vw, 22px); color: #1c4740; margin-bottom: 8px; line-height: 1.5; }
+  .card button {
+    margin-top: 16px; font-family: inherit; font-size: clamp(20px, 5vw, 28px); font-weight: bold;
+    background: #00897b; color: #fff; border: none; border-radius: 20px; padding: 14px 34px;
+    cursor: pointer; box-shadow: 0 6px 0 #004d40;
+  }
+  .card button:active { transform: translateY(3px); box-shadow: 0 3px 0 #004d40; }
+  .hidden { display: none !important; }
+  .keyhint { font-size: clamp(13px, 3vw, 17px); color: #4f8a80; margin-top: 6px; }
+</style>
+</head>
+<body>
+<a class="home" href="index.html">⌂ Home</a>
+<canvas id="view"></canvas>
+
+<div id="hud">
+  <div class="chip">📷 <span id="photoCount">0</span>/<span id="photoTotal">0</span></div>
+</div>
+<div id="hint">👆 Tap an animal to snap its photo!</div>
+<div id="album"></div>
+<div id="flash"></div>
+
+<div id="overlay">
+  <div class="card" id="card">
+    <h2>📸 Sabrina's Photo Safari!</h2>
+    <p>Bear the photographer needs your help! 🧸 The animals are playing in the park!</p>
+    <p><b>Tap an animal</b> to take its picture and add it to your photo album.</p>
+    <p>Snap all <b>8 animals</b> to finish your album — and watch for the <b>golden butterfly</b> ✨🦋!</p>
+    <p class="keyhint">The animals love posing — nobody runs away. Happy snapping! 💙</p>
+    <button id="startBtn">Say cheese! ▶</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('view');
+  const ctx = canvas.getContext('2d');
+  const overlay = document.getElementById('overlay');
+  const card = document.getElementById('card');
+  const photoCountEl = document.getElementById('photoCount');
+  const photoTotalEl = document.getElementById('photoTotal');
+  const hintEl = document.getElementById('hint');
+  const albumEl = document.getElementById('album');
+  const flashEl = document.getElementById('flash');
+
+  let W = 0, H = 0, dpr = 1;
+
+  // the animals Sabrina must photograph
+  const ANIMALS = [
+    { e: '🦁', name: 'Lion' },
+    { e: '🐘', name: 'Elephant' },
+    { e: '🦒', name: 'Giraffe' },
+    { e: '🦓', name: 'Zebra' },
+    { e: '🐵', name: 'Monkey' },
+    { e: '🐦', name: 'Bird' },
+    { e: '🐰', name: 'Rabbit' },
+    { e: '🦔', name: 'Hedgehog' },
+  ];
+
+  let animals, clouds, trees, flowers, golden, cameraTilt, running, won, photoCount;
+  const fx = [];
+
+  function horizon()   { return H * 0.42; }
+  function bandTop()   { return H * 0.52; }
+  function bandBottom(){ return H - 150; }
+
+  // ---------- build the scene ----------
+  function buildScene() {
+    animals = ANIMALS.map((a, i) => ({
+      ...a,
+      x: (i + 0.5) * (1 / ANIMALS.length) + Math.random() * 0.04,  // fraction of width
+      baseY: Math.random(),          // fraction of the ground band
+      vx: (Math.random() < 0.5 ? -1 : 1) * (14 + Math.random() * 22),
+      bob: Math.random() * 6,
+      turnT: 2 + Math.random() * 3,
+      got: false,
+    }));
+    golden = null; // the golden butterfly arrives later
+    clouds = [];
+    for (let i = 0; i < 7; i++) {
+      clouds.push({ x: Math.random(), y: 30 + Math.random() * (H * 0.22), s: 0.4 + Math.random() * 0.5, scale: 0.7 + Math.random() * 0.9 });
+    }
+    trees = [];
+    for (let i = 0; i < 6; i++) {
+      trees.push({ x: Math.random(), e: Math.random() < 0.5 ? '🌳' : '🌴', scale: 0.9 + Math.random() * 0.6 });
+    }
+    flowers = [];
+    for (let i = 0; i < 26; i++) {
+      flowers.push({ x: Math.random(), y: Math.random(), e: ['🌸','🌼','🌻','🌷','🍀'][Math.floor(Math.random() * 5)], scale: 0.5 + Math.random() * 0.5 });
+    }
+  }
+
+  function resetGame() {
+    buildScene();
+    photoCount = 0; won = false; cameraTilt = 0;
+    photoCountEl.textContent = '0';
+    photoTotalEl.textContent = ANIMALS.length;
+    albumEl.innerHTML = '';
+    golden = null;
+    hintEl.classList.remove('hidden');
+  }
+
+  function sizeCanvas() {
+    dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function speak(text, pitch = 1.3) {
+    if (!('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US'; u.rate = 1.0; u.pitch = pitch;
+    speechSynthesis.speak(u);
+  }
+
+  // little camera shutter click (WebAudio, created on first tap)
+  let audio = null;
+  function shutter() {
+    try {
+      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+      const t = audio.currentTime;
+      const o = audio.createOscillator(), g = audio.createGain();
+      o.type = 'square'; o.frequency.setValueAtTime(1400, t);
+      o.frequency.exponentialRampToValueAtTime(500, t + 0.05);
+      g.gain.setValueAtTime(0.25, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
+      o.connect(g).connect(audio.destination);
+      o.start(t); o.stop(t + 0.08);
+    } catch (e) { /* no sound is fine */ }
+  }
+
+  // ---------- polaroid photos ----------
+  function makePolaroid(emoji, caption, isGolden) {
+    // draw a tiny scene snapshot with the animal front and center
+    const c = document.createElement('canvas');
+    c.width = 160; c.height = 120;
+    const x = c.getContext('2d');
+    const sky = x.createLinearGradient(0, 0, 0, 80);
+    sky.addColorStop(0, isGolden ? '#fff3c0' : '#81d4fa'); sky.addColorStop(1, '#e8f7f4');
+    x.fillStyle = sky; x.fillRect(0, 0, 160, 80);
+    x.fillStyle = '#81c784'; x.fillRect(0, 80, 160, 40);
+    x.fillStyle = '#fff59d'; x.beginPath(); x.arc(138, 18, 11, 0, Math.PI * 2); x.fill();
+    x.font = '58px serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.fillText(emoji, 80, 62);
+    const img = document.createElement('img');
+    img.src = c.toDataURL();
+    img.alt = caption;
+    const pol = document.createElement('div');
+    pol.className = 'polaroid';
+    pol.appendChild(img);
+    const cap = document.createElement('div');
+    cap.className = 'cap';
+    cap.textContent = caption;
+    pol.appendChild(cap);
+    albumEl.appendChild(pol);
+  }
+
+  function snapFlash() {
+    flashEl.classList.add('on');
+    setTimeout(() => flashEl.classList.remove('on'), 60);
+  }
+
+  // ---------- tapping the camera ----------
+  function trySnap(clientX, clientY) {
+    if (!running) return;
+    shutter();
+    cameraTilt = 0.05;
+
+    // golden butterfly first (she flies across the sky)
+    if (golden && !golden.got &&
+        Math.abs(clientX - golden.x) < 60 && Math.abs(clientY - golden.y) < 60) {
+      golden.got = true;
+      makePolaroid('🦋', '✨ Golden Butterfly!', true);
+      sparkle(golden.x, golden.y, '✨');
+      popText('Golden butterfly!', golden.x, golden.y - 30, '#f9a825');
+      burstConfetti();
+      speak('Wow! You photographed the golden butterfly!', 1.5);
+      return;
+    }
+
+    // nearest animal within reach
+    let best = null, bestD = 1e9;
+    for (const a of animals) {
+      const ax = a.x * W, ay = animalY(a);
+      const d = Math.hypot(clientX - ax, clientY - ay);
+      if (d < 70 && d < bestD) { best = a; bestD = d; }
+    }
+    if (!best) return;
+
+    if (best.got) {
+      popText('Already in your album!', best.x * W, animalY(best) - 50, '#00796b');
+      speak('Already in your album!');
+      return;
+    }
+
+    best.got = true;
+    photoCount++;
+    photoCountEl.textContent = photoCount;
+    snapFlash();
+    makePolaroid(best.e, best.name, false);
+    sparkle(best.x * W, animalY(best), '⭐');
+    popText('Snap!', best.x * W, animalY(best) - 54, '#00838f');
+    speak('Snap! A ' + best.name.toLowerCase() + '!', 1.4);
+
+    if (!won && photoCount >= ANIMALS.length) { won = true; setTimeout(winGame, 900); }
+  }
+
+  canvas.addEventListener('pointerdown', e => { trySnap(e.clientX, e.clientY); e.preventDefault(); });
+
+  // ---------- loop ----------
+  let lastT = 0;
+  function tick(t) {
+    if (!running) return;
+    const dt = Math.min(0.04, (t - lastT) / 1000 || 0);
+    lastT = t;
+    update(dt, t);
+    render(t);
+    requestAnimationFrame(tick);
+  }
+
+  function animalY(a) {
+    const top = bandTop(), bot = bandBottom();
+    return top + a.baseY * (bot - top);
+  }
+
+  function update(dt, t) {
+    cameraTilt = Math.max(0, cameraTilt - dt * 0.2);
+
+    // animals wander and change their minds now and then
+    for (const a of animals) {
+      a.x += a.vx * dt / W;
+      a.turnT -= dt;
+      if (a.turnT <= 0) { a.vx *= -1; a.turnT = 2 + Math.random() * 4; }
+      if (a.x < 0.06) { a.x = 0.06; a.vx = Math.abs(a.vx); }
+      if (a.x > 0.94) { a.x = 0.94; a.vx = -Math.abs(a.vx); }
+    }
+
+    // the golden butterfly crosses the sky every little while
+    if (!golden || golden.x < -0.1) {
+      if (!golden || Math.random() < dt / 18) {
+        golden = { x: -0.08, y: H * (0.12 + Math.random() * 0.22), got: false, ph: Math.random() * 6 };
+      }
+    } else if (!golden.got) {
+      golden.x += 0.09 * dt;
+      golden.y += Math.sin(t / 400 + golden.ph) * 30 * dt;
+    }
+
+    for (let i = fx.length - 1; i >= 0; i--) {
+      const p = fx[i]; p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt;
+      if (p.t >= p.life) fx.splice(i, 1);
+    }
+  }
+
+  function sparkle(x, y, ch) { for (let i = 0; i < 7; i++) fx.push({ x, y, ch, vx: (Math.random()-0.5)*130, vy: -70 - Math.random()*90, life: 0.8, t: 0 }); }
+  function popText(txt, x, y, color) { fx.push({ x, y, txt, color, vx: 0, vy: -60, life: 0.9, t: 0 }); }
+  function burstConfetti() {
+    const colors = ['#ff5252','#ffeb3b','#4caf50','#2196f3','#e040fb','#ff9800'];
+    for (let i = 0; i < 26; i++) fx.push({ x: Math.random() * W, y: -10, ch: '', color: colors[i % colors.length], vx: (Math.random()-0.5)*60, vy: 120 + Math.random()*120, life: 2.2, t: 0, square: true });
+  }
+
+  // ---------- render ----------
+  function render(t) {
+    ctx.save();
+    if (cameraTilt > 0) {
+      ctx.translate(W / 2, H / 2);
+      ctx.rotate(Math.sin(t / 30) * cameraTilt);
+      ctx.translate(-W / 2, -H / 2);
+    }
+
+    // sky
+    const sky = ctx.createLinearGradient(0, 0, 0, horizon());
+    sky.addColorStop(0, '#4dd0e1'); sky.addColorStop(1, '#ffe0b2');
+    ctx.fillStyle = sky; ctx.fillRect(0, 0, W, horizon());
+
+    // sun
+    ctx.fillStyle = '#fff59d';
+    ctx.beginPath(); ctx.arc(70, 70, 40, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 0.4; ctx.beginPath(); ctx.arc(70, 70, 54, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+
+    // clouds
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (const c of clouds) {
+      ctx.font = (44 * c.scale) + 'px serif';
+      ctx.globalAlpha = 0.9;
+      ctx.fillText('☁️', ((c.x * W + t * 0.006 * c.s) % (W + 200)) - 100, c.y);
+      ctx.globalAlpha = 1;
+    }
+
+    // ground
+    const ground = ctx.createLinearGradient(0, horizon(), 0, H);
+    ground.addColorStop(0, '#aed581'); ground.addColorStop(1, '#66bb6a');
+    ctx.fillStyle = ground; ctx.fillRect(0, horizon(), W, H - horizon());
+    ctx.fillStyle = '#9ccc65'; ctx.fillRect(0, horizon(), W, 10);
+
+    // trees on the skyline
+    for (const tr of trees) {
+      ctx.font = (54 * tr.scale) + 'px serif';
+      ctx.fillText(tr.e, tr.x * W, horizon() + 12);
+    }
+
+    // flowers all over the grass
+    for (const f of flowers) {
+      const fy = bandTop() + f.y * (bandBottom() - bandTop() + 90);
+      ctx.font = (24 * f.scale) + 'px serif';
+      ctx.fillText(f.e, f.x * W, Math.min(fy, H - 118));
+    }
+
+    // golden butterfly
+    if (golden && !golden.got) {
+      ctx.font = '40px serif';
+      ctx.fillText('🦋', golden.x * W, golden.y + Math.sin(t / 250 + golden.ph) * 6);
+      ctx.globalAlpha = 0.35;
+      ctx.fillText('✨', golden.x * W - 26, golden.y - 20 + Math.sin(t / 200) * 4);
+      ctx.fillText('✨', golden.x * W + 28, golden.y + 18 + Math.cos(t / 230) * 4);
+      ctx.globalAlpha = 1;
+    }
+
+    // animals (drawn back-to-front for a little depth)
+    const sorted = [...animals].sort((a, b) => a.baseY - b.baseY);
+    for (const a of sorted) {
+      const depth = 0.75 + a.baseY * 0.45;
+      const bobY = Math.sin(t / 300 + a.bob) * 4;
+      ctx.font = (56 * depth) + 'px serif';
+      // face the walking direction
+      ctx.save();
+      ctx.translate(a.x * W, animalY(a) + bobY);
+      if (a.vx < 0) ctx.scale(-1, 1);
+      ctx.fillText(a.e, 0, 0);
+      ctx.restore();
+      if (a.got) { // a little star for animals already in the album
+        ctx.font = (20 * depth) + 'px serif';
+        ctx.fillText('⭐', a.x * W + 22 * depth, animalY(a) - 36 * depth + bobY);
+      }
+    }
+
+    // camera viewfinder corners
+    ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 5;
+    const m = 18, L = 34;
+    for (const [cx, cy, dx, dy] of [[m, m, 1, 1], [W - m, m, -1, 1], [m, H - m, 1, -1], [W - m, H - m, -1, -1]]) {
+      ctx.beginPath();
+      ctx.moveTo(cx + dx * L, cy); ctx.lineTo(cx, cy); ctx.lineTo(cx, cy + dy * L);
+      ctx.stroke();
+    }
+
+    // fx
+    for (const p of fx) {
+      const a = 1 - p.t / p.life;
+      ctx.globalAlpha = Math.max(0, a);
+      if (p.txt) { ctx.font = 'bold 26px "Comic Sans MS", serif'; ctx.fillStyle = p.color || '#f9a825'; ctx.textAlign = 'center'; ctx.fillText(p.txt, p.x, p.y); }
+      else if (p.square) { ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, 10, 10); }
+      else { ctx.font = '24px serif'; ctx.textAlign = 'center'; ctx.fillText(p.ch, p.x, p.y); }
+      ctx.globalAlpha = 1;
+    }
+    ctx.restore();
+  }
+
+  // ---------- win ----------
+  function winGame() {
+    running = false;
+    hintEl.classList.add('hidden');
+    card.innerHTML = `
+      <h2>📸 What a photographer!</h2>
+      <p>Your photo album is <strong>complete</strong> — you photographed all ${ANIMALS.length} animals! 🦁🐘🦒🦓🐵🐦🐰🦔</p>
+      <p>Bear is so proud of you! 🧸💙</p>
+      <button id="againBtn">Safari again ▶</button>`;
+    overlay.classList.remove('hidden');
+    document.getElementById('againBtn').addEventListener('click', start);
+    speak('What a photographer! Your photo album is complete!', 1.4);
+    burstConfetti();
+    setTimeout(burstConfetti, 500);
+  }
+
+  function start() {
+    overlay.classList.add('hidden');
+    sizeCanvas();
+    resetGame();
+    running = true;
+    lastT = performance.now();
+    requestAnimationFrame(tick);
+    speak('Camera ready! Tap the animals to take their picture!', 1.4);
+  }
+
+  window.addEventListener('resize', () => { sizeCanvas(); });
+
+  document.getElementById('startBtn').addEventListener('click', start);
+  sizeCanvas();
+})();
+</script>
+</body>
+</html>
