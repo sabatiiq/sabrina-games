@@ -2,7 +2,7 @@
 
 A little collection of browser games for early learners (age 6 and up). All games share a friendly Bear character and a cookie theme.
 
-**Live site:** https://sabatiiq.github.io/sabrina-games/
+**Live site:** https://sabatiiq.github.io/games/
 
 ## Games
 
@@ -33,6 +33,7 @@ A little collection of browser games for early learners (age 6 and up). All game
 | 🦕🍖 Sabrina's Dino Land | Platforming, coordination, counting the food you collect | [prehistoric-game.html](prehistoric-game.html) |
 | ✈️⭐ Sabrina's Sky Adventure | Flying control, timing, counting the stars you collect | [airplane-game.html](airplane-game.html) |
 | 🎬🍿 Sabrina's Movie Theater | Reading rows & seat numbers, grid coordinates, counting | [cinema-game.html](cinema-game.html) |
+| 🚲🍦 Sabrina's Bike Ride | Steering & coordination, collecting, road safety | [cycling-game.html](cycling-game.html) |
 
 ## Tech
 
