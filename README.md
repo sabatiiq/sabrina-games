@@ -32,6 +32,7 @@ A little collection of browser games for early learners (age 6 and up), made by 
 | 🎬🍿 Sabrina's Movie Theater | Reading rows & seat numbers, grid coordinates, counting | [cinema-game.html](cinema-game.html) |
 | 🚲🍦 Sabrina's Bike Ride | Steering & coordination, collecting, road safety | [cycling-game.html](cycling-game.html) |
 | 📸🦁 Sabrina's Photo Safari | Aiming & tapping, animal names, collecting all 8 photos | [photo-game.html](photo-game.html) |
+| 🏎️🌈 Sabrina's Race Car | Steering & coordination, collecting, dodging cones | [car-game.html](car-game.html) |
 
 ## Tech
 

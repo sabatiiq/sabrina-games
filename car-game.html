@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Sabrina's Race Car! 🏎️</title>
+<link rel="icon" type="image/png" href="sa-logo.png">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    height: 100%; overflow: hidden;
+    font-family: 'Comic Sans MS', 'Marker Felt', cursive, sans-serif;
+    user-select: none; touch-action: none;
+    background: #90caf9;
+  }
+  #view { position: absolute; inset: 0; display: block; }
+
+  #hud {
+    position: absolute; top: 10px; left: 0; right: 0; z-index: 5;
+    display: flex; justify-content: center; gap: 10px; pointer-events: none;
+  }
+  .chip {
+    background: rgba(255,255,255,0.85); border: 3px solid #e53935; border-radius: 18px;
+    padding: 6px 18px; font-size: clamp(18px, 4.5vw, 28px); font-weight: bold; color: #b71c1c;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.15);
+  }
+  a.home {
+    position: absolute; top: 12px; left: 12px; z-index: 6;
+    background: rgba(255,255,255,0.75); color: #b71c1c; padding: 6px 11px;
+    text-decoration: none; border-radius: 12px; font-size: 14px; font-weight: bold; pointer-events: auto;
+  }
+  #hint {
+    position: absolute; bottom: 18px; left: 0; right: 0; z-index: 5; text-align: center;
+    color: #b71c1c; font-size: clamp(15px, 3.6vw, 20px); font-weight: bold; pointer-events: none;
+    text-shadow: 0 1px 3px rgba(255,255,255,0.8);
+  }
+  #hornBtn {
+    position: absolute; right: 16px; bottom: 16px; z-index: 6;
+    width: clamp(64px, 14vw, 92px); height: clamp(64px, 14vw, 92px);
+    font-size: clamp(34px, 7vw, 50px); line-height: 1;
+    background: #ffeb3b; border: 4px solid #fbc02d; border-radius: 50%;
+    box-shadow: 0 5px 0 #f57f17; cursor: pointer; pointer-events: auto;
+    font-family: inherit;
+  }
+  #hornBtn:active { transform: translateY(3px); box-shadow: 0 2px 0 #f57f17; }
+
+  #overlay {
+    position: absolute; inset: 0; z-index: 10;
+    background: rgba(90,20,20,0.5);
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .card {
+    background: #fff4ee; border: 4px solid #ef5350; border-radius: 26px;
+    padding: 26px 22px; text-align: center; max-width: 480px;
+    box-shadow: 0 14px 40px rgba(0,0,0,0.4);
+  }
+  .card h2 { font-size: clamp(26px, 7vw, 42px); color: #c62828; margin-bottom: 12px; }
+  .card p { font-size: clamp(16px, 3.6vw, 22px); color: #5d2a26; margin-bottom: 8px; line-height: 1.5; }
+  .card button {
+    margin-top: 16px; font-family: inherit; font-size: clamp(20px, 5vw, 28px); font-weight: bold;
+    background: #e53935; color: #fff; border: none; border-radius: 20px; padding: 14px 34px;
+    cursor: pointer; box-shadow: 0 6px 0 #b71c1c;
+  }
+  .card button:active { transform: translateY(3px); box-shadow: 0 3px 0 #b71c1c; }
+  .hidden { display: none !important; }
+  .keyhint { font-size: clamp(13px, 3vw, 17px); color: #b9827c; margin-top: 6px; }
+</style>
+</head>
+<body>
+<a class="home" href="index.html">⌂ Home</a>
+<canvas id="view"></canvas>
+
+<div id="hud">
+  <div class="chip">⭐ <span id="starCount">0</span>/<span id="starTotal">0</span></div>
+  <div class="chip">🎈 <span id="balloonCount">0</span></div>
+</div>
+<div id="hint">👆 Touch and drag up & down to steer your race car!</div>
+<button id="hornBtn" title="Beep beep!">📢</button>
+
+<div id="overlay">
+  <div class="card" id="card">
+    <h2>🏎️ Sabrina's Race Car!</h2>
+    <p>Buckle up, Sabrina! 🚗💨 You are driving your race car through the neighborhood!</p>
+    <p><b>Touch and drag</b> (or press ↑ ↓ arrow keys) to steer <b>up and down</b> the road.</p>
+    <p>Collect stars ⭐ and balloons 🎈, beep your horn 📢, and bounce gently off cones 🚧!</p>
+    <p class="keyhint">The car can't crash — cones just go <i>boing</i>! Race to the rainbow 🌈!</p>
+    <button id="startBtn">Start your engine! ▶</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('view');
+  const ctx = canvas.getContext('2d');
+  const overlay = document.getElementById('overlay');
+  const card = document.getElementById('card');
+  const starCountEl = document.getElementById('starCount');
+  const starTotalEl = document.getElementById('starTotal');
+  const balloonCountEl = document.getElementById('balloonCount');
+  const hintEl = document.getElementById('hint');
+  const hornBtn = document.getElementById('hornBtn');
+
+  let W = 0, H = 0, dpr = 1;
+
+  const WORLD_W = 4200;
+  const GOAL_X = 4000;
+  const CAR_SPEED = 260;     // px/s forward
+  const CONE_SPEED = 130;    // px/s while boinging
+  const STEER_KEY = 430;     // px/s with arrow keys
+
+  let car, items, cones, clouds, houses, trees, flowers, cameraX, running, won;
+  let starsGot, starTotal, balloonsGot, boing, coneCooldown;
+  const input = { steer: false, targetY: 0, up: false, down: false };
+  const fx = [];
+
+  function roadTop()    { return H * 0.55; }
+  function roadBottom() { return H - 40; }
+  function roadMid()    { return (roadTop() + roadBottom()) / 2; }
+  function roadH()      { return roadBottom() - roadTop(); }
+
+  // ---------- build the level ----------
+  function buildLevel() {
+    items = []; cones = []; houses = []; trees = []; flowers = [];
+    let count = 0;
+    // wavy trail of stars with a balloon now and then
+    for (let x = 340; x < GOAL_X - 160; x += 150) {
+      const y = roadMid() + Math.sin(x * 0.005) * (roadH() * 0.3);
+      let e = '⭐', kind = 'star';
+      if (Math.random() < 0.10) { e = '🎈'; kind = 'balloon'; }
+      items.push({ x, y, e, kind, got: false, bob: Math.random() * 6 });
+      if (kind === 'star') count++;
+    }
+    starTotal = count;
+    starTotalEl.textContent = starTotal;
+    // traffic cones to boing off
+    for (let x = 650; x < GOAL_X - 200; x += 500 + Math.random() * 350) {
+      cones.push({ x, y: roadTop() + roadH() * (0.25 + Math.random() * 0.5), got: false });
+    }
+    // roadside scenery
+    for (let i = 0; i < 10; i++) {
+      houses.push({ x: 200 + i * (WORLD_W / 10) + Math.random() * 120, e: Math.random() < 0.5 ? '🏠' : '🏫', scale: 1 + Math.random() * 0.4, top: Math.random() < 0.7 });
+    }
+    for (let i = 0; i < 16; i++) {
+      trees.push({ x: 120 + i * (WORLD_W / 16) + Math.random() * 90, e: Math.random() < 0.5 ? '🌳' : '🌲', scale: 0.8 + Math.random() * 0.6, top: Math.random() < 0.75 });
+    }
+    for (let i = 0; i < 36; i++) {
+      flowers.push({ x: Math.random() * WORLD_W, e: ['🌷','🌼','🌻','🌺'][Math.floor(Math.random() * 4)], scale: 0.55 + Math.random() * 0.5 });
+    }
+    clouds = [];
+    for (let i = 0; i < 12; i++) {
+      clouds.push({ x: Math.random() * WORLD_W, y: 36 + Math.random() * (H * 0.28), s: 0.4 + Math.random() * 0.6, scale: 0.7 + Math.random() * 0.9 });
+    }
+  }
+
+  function resetGame() {
+    buildLevel();
+    car = { x: 120, y: roadMid(), angle: 0 };
+    input.targetY = car.y;
+    cameraX = 0;
+    starsGot = 0; balloonsGot = 0; won = false;
+    boing = 0; coneCooldown = 0;
+    starCountEl.textContent = '0';
+    balloonCountEl.textContent = '0';
+    hintEl.classList.remove('hidden');
+  }
+
+  function sizeCanvas() {
+    dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function speak(text, pitch = 1.3) {
+    if (!('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US'; u.rate = 1.0; u.pitch = pitch;
+    speechSynthesis.speak(u);
+  }
+
+  // little horn honk (WebAudio)
+  let audio = null;
+  function honk() {
+    try {
+      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+      const t = audio.currentTime;
+      const o = audio.createOscillator(), g = audio.createGain();
+      o.type = 'sawtooth'; o.frequency.setValueAtTime(330, t);
+      o.frequency.setValueAtTime(262, t + 0.12);
+      g.gain.setValueAtTime(0.18, t);
+      g.gain.setValueAtTime(0.18, t + 0.2);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.26);
+      o.connect(g).connect(audio.destination);
+      o.start(t); o.stop(t + 0.28);
+    } catch (e) { /* no sound is fine */ }
+  }
+
+  // ---------- loop ----------
+  let lastT = 0;
+  function tick(t) {
+    if (!running) return;
+    const dt = Math.min(0.04, (t - lastT) / 1000 || 0);
+    lastT = t;
+    update(dt);
+    render();
+    requestAnimationFrame(tick);
+  }
+
+  function update(dt) {
+    // vroom forward (cones slow you down a little)
+    boing = Math.max(0, boing - dt);
+    coneCooldown = Math.max(0, coneCooldown - dt);
+    car.x += (boing > 0.35 ? CONE_SPEED : CAR_SPEED) * dt;
+
+    // steering: finger first, arrow keys otherwise
+    if (input.steer) {
+      car.y += (input.targetY - car.y) * Math.min(1, 10 * dt);
+    } else {
+      input.targetY += ((input.down ? 1 : 0) - (input.up ? 1 : 0)) * STEER_KEY * dt;
+      input.targetY = Math.max(roadTop() + 26, Math.min(roadBottom() - 26, input.targetY));
+      car.y += (input.targetY - car.y) * Math.min(1, 10 * dt);
+    }
+    car.y = Math.max(roadTop() + 26, Math.min(roadBottom() - 26, car.y));
+    car.angle = Math.max(-0.22, Math.min(0.22, (input.targetY - car.y) / 350));
+
+    // collect stars and balloons
+    for (const it of items) {
+      if (it.got) continue;
+      if (Math.abs(car.x - it.x) < 44 && Math.abs(car.y - it.y) < 44) {
+        it.got = true;
+        sparkle(it.x, it.y, '✨');
+        if (it.kind === 'star') {
+          starsGot++; starCountEl.textContent = starsGot;
+          popText('+1', it.x, it.y, '#f9a825');
+          if (starsGot % 5 === 0) speak(starsGot + ' stars!', 1.4);
+        } else {
+          balloonsGot++; balloonCountEl.textContent = balloonsGot;
+          popText('A balloon!', it.x, it.y, '#e91e63');
+          speak('A balloon!', 1.5);
+        }
+      }
+    }
+
+    // cones: a gentle boing, never a crash
+    for (const c of cones) {
+      if (c.got) continue;
+      if (Math.abs(car.x - c.x) < 46 && Math.abs(car.y - c.y) < 34) {
+        c.got = true;
+        boing = 1.0; coneCooldown = 1.0;
+        popText('Boing!', c.x, c.y - 24, '#ef6c00');
+        for (let i = 0; i < 6; i++) fx.push({ x: c.x, y: c.y, ch: '💥', vx: (Math.random() - 0.5) * 140, vy: -100 - Math.random() * 80, life: 0.6, t: 0 });
+        speak('Boing! Watch out for cones!', 1.4);
+      }
+    }
+
+    if (!won && car.x >= GOAL_X) { won = true; winGame(); }
+
+    cameraX = Math.max(0, Math.min(WORLD_W - W, car.x - W * 0.32));
+
+    for (let i = fx.length - 1; i >= 0; i--) {
+      const p = fx[i]; p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt;
+      if (p.t >= p.life) fx.splice(i, 1);
+    }
+  }
+
+  function sparkle(x, y, ch) { for (let i = 0; i < 7; i++) fx.push({ x, y, ch, vx: (Math.random()-0.5)*130, vy: -70 - Math.random()*90, life: 0.8, t: 0 }); }
+  function popText(txt, x, y, color) { fx.push({ x, y, txt, color, vx: 0, vy: -60, life: 0.9, t: 0 }); }
+
+  // ---------- render ----------
+  function render() {
+    // sky
+    const sky = ctx.createLinearGradient(0, 0, 0, roadTop());
+    sky.addColorStop(0, '#64b5f6'); sky.addColorStop(1, '#e3f2fd');
+    ctx.fillStyle = sky; ctx.fillRect(0, 0, W, roadTop());
+
+    // sun
+    ctx.fillStyle = '#fff59d';
+    ctx.beginPath(); ctx.arc(70, 70, 40, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 0.4; ctx.beginPath(); ctx.arc(70, 70, 54, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+
+    // parallax clouds
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (const c of clouds) {
+      const sx = c.x - cameraX * c.s;
+      const wrapped = ((sx % (W + 200)) + (W + 200)) % (W + 200) - 100;
+      ctx.font = (44 * c.scale) + 'px serif';
+      ctx.globalAlpha = 0.9;
+      ctx.fillText('☁️', wrapped, c.y);
+      ctx.globalAlpha = 1;
+    }
+
+    // grass
+    const grass = ctx.createLinearGradient(0, roadTop(), 0, H);
+    grass.addColorStop(0, '#8bc34a'); grass.addColorStop(1, '#558b2f');
+    ctx.fillStyle = grass; ctx.fillRect(0, roadTop(), W, H - roadTop());
+
+    // houses and trees on the far grass + flowers on the near grass
+    for (const h of houses) {
+      const sx = h.x - cameraX; if (sx < -80 || sx > W + 80) continue;
+      ctx.font = (56 * h.scale) + 'px serif';
+      ctx.fillText(h.e, sx, roadTop() - 36 * h.scale);
+    }
+    for (const t of trees) {
+      const sx = t.x - cameraX; if (sx < -60 || sx > W + 60) continue;
+      ctx.font = (52 * t.scale) + 'px serif';
+      ctx.fillText(t.e, sx, t.top ? roadTop() - 30 * t.scale : H - 14);
+    }
+    for (const f of flowers) {
+      const sx = f.x - cameraX; if (sx < -30 || sx > W + 30) continue;
+      ctx.font = (26 * f.scale) + 'px serif';
+      ctx.fillText(f.e, sx, H - 12);
+    }
+
+    // road
+    ctx.fillStyle = '#616161';
+    ctx.fillRect(0, roadTop(), W, roadH());
+    ctx.fillStyle = '#f5f5f5';
+    ctx.fillRect(0, roadTop(), W, 6);
+    ctx.fillRect(0, roadBottom() - 6, W, 6);
+    ctx.strokeStyle = '#ffd54f'; ctx.lineWidth = 6; ctx.setLineDash([42, 34]);
+    ctx.beginPath();
+    ctx.moveTo(-((cameraX % 76) + 76), roadMid());
+    ctx.lineTo(W + 76, roadMid());
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // cones
+    for (const c of cones) {
+      if (c.got) continue;
+      const sx = c.x - cameraX; if (sx < -50 || sx > W + 50) continue;
+      ctx.font = '38px serif';
+      ctx.fillText('🚧', sx, c.y);
+    }
+
+    // items
+    for (const it of items) {
+      if (it.got) continue;
+      const sx = it.x - cameraX; if (sx < -50 || sx > W + 50) continue;
+      const yy = it.y + Math.sin(performance.now() / 350 + it.bob) * 5;
+      ctx.font = (it.kind === 'star' ? 34 : 38) + 'px serif';
+      ctx.fillText(it.e, sx, yy);
+    }
+
+    // rainbow + finish at the end
+    const gx = GOAL_X - cameraX;
+    if (gx < W + 260) {
+      ctx.font = '72px serif'; ctx.textAlign = 'center';
+      ctx.fillText('🌈', gx + 110, roadTop() - 40);
+      ctx.fillText('🏁', gx - 30, roadTop() - 24);
+      ctx.font = 'bold 24px "Comic Sans MS", serif'; ctx.fillStyle = '#b71c1c';
+      ctx.fillText('FINISH!', gx + 110, roadTop() - 96);
+      ctx.font = '38px serif'; ctx.fillStyle = '#ffffff';
+      ctx.fillText('🎉🎉🎉', gx + 110, roadMid() + 6);
+    }
+
+    // race car
+    const px = car.x - cameraX;
+    ctx.save();
+    ctx.translate(px, car.y);
+    ctx.rotate(car.angle + (boing > 0 ? Math.sin(boing * 26) * 0.18 : 0));
+    ctx.font = '58px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('🏎️', 0, 0);
+    ctx.restore();
+    // exhaust puffs behind the wheels
+    ctx.globalAlpha = 0.45; ctx.font = '20px serif';
+    ctx.fillText('💨', px - 46, car.y + 12);
+    ctx.fillText('💨', px - 70, car.y + 18);
+    ctx.globalAlpha = 1;
+
+    // fx
+    for (const p of fx) {
+      const sx = p.x - cameraX; const a = 1 - p.t / p.life;
+      ctx.globalAlpha = Math.max(0, a);
+      if (p.txt) { ctx.font = 'bold 26px "Comic Sans MS", serif'; ctx.fillStyle = p.color || '#f9a825'; ctx.textAlign = 'center'; ctx.fillText(p.txt, sx, p.y); }
+      else { ctx.font = '24px serif'; ctx.textAlign = 'center'; ctx.fillText(p.ch, sx, p.y); }
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // ---------- win ----------
+  function winGame() {
+    running = false;
+    hintEl.classList.add('hidden');
+    const msg = starsGot >= starTotal ? 'PERFECT DRIVE — every single star! 🌟'
+              : starsGot >= Math.round(starTotal * 0.6) ? 'Great driving, Sabrina! 🏁'
+              : 'You made it to the rainbow! 🌈';
+    card.innerHTML = `
+      <h2>🌈 You reached the rainbow! 🏎️</h2>
+      <p>You drove all the way through the neighborhood and collected <strong>${starsGot}</strong> of ${starTotal} stars ${balloonsGot > 0 ? 'and <strong>' + balloonsGot + '</strong> balloon' + (balloonsGot === 1 ? '' : 's') + '! ' : '!'}</p>
+      <p>${msg}</p>
+      <button id="againBtn">Race again ▶</button>`;
+    overlay.classList.remove('hidden');
+    document.getElementById('againBtn').addEventListener('click', start);
+    speak('You reached the rainbow! You collected ' + starsGot + ' stars. Great driving!', 1.4);
+    for (let i = 0; i < 20; i++) sparkle(car.x + (Math.random()-0.5)*200, car.y + (Math.random()-0.5)*160, ['✨','⭐','🎈','🌈'][Math.floor(Math.random()*4)]);
+  }
+
+  function start() {
+    overlay.classList.add('hidden');
+    sizeCanvas();
+    resetGame();
+    running = true;
+    lastT = performance.now();
+    requestAnimationFrame(tick);
+    speak('Seatbelt on! Vroom vroom!', 1.4);
+  }
+
+  // ---------- input: drag to steer ----------
+  function steerTo(e) {
+    input.targetY = Math.max(roadTop() + 26, Math.min(roadBottom() - 26, e.clientY));
+  }
+  canvas.addEventListener('pointerdown', e => { input.steer = true; steerTo(e); e.preventDefault(); });
+  canvas.addEventListener('pointermove', e => { if (input.steer) steerTo(e); });
+  window.addEventListener('pointerup', () => { input.steer = false; });
+  canvas.addEventListener('pointercancel', () => { input.steer = false; });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowUp' || e.key === 'w') { input.up = true; e.preventDefault(); }
+    if (e.key === 'ArrowDown' || e.key === 's') { input.down = true; e.preventDefault(); }
+  });
+  document.addEventListener('keyup', e => {
+    if (e.key === 'ArrowUp' || e.key === 'w') input.up = false;
+    if (e.key === 'ArrowDown' || e.key === 's') input.down = false;
+  });
+
+  hornBtn.addEventListener('pointerdown', e => e.stopPropagation());
+  hornBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    honk();
+    speak('Beep beep!', 1.5);
+    popText('Beep beep!', car.x, car.y - 55, '#f57f17');
+    for (let i = 0; i < 5; i++) fx.push({ x: car.x, y: car.y - 55, ch: '🎵', vx: (Math.random()-0.5)*120, vy: -80 - Math.random()*60, life: 0.7, t: 0 });
+  });
+
+  window.addEventListener('resize', () => { sizeCanvas(); });
+
+  document.getElementById('startBtn').addEventListener('click', start);
+  sizeCanvas();
+})();
+</script>
+</body>
+</html>
