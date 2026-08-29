@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Sabrina's Makeup Salon! 💄</title>
+<link rel="icon" type="image/png" href="sa-logo.png">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    min-height: 100%;
+    font-family: 'Comic Sans MS', 'Marker Felt', cursive, sans-serif;
+    background: linear-gradient(135deg, #fce4ec 0%, #f3e5f5 55%, #e1bee7 100%);
+    user-select: none; touch-action: manipulation;
+  }
+  body { min-height: 100vh; }
+  #app { max-width: 760px; margin: 0 auto; padding: 14px 12px 120px; }
+
+  a.home {
+    position: fixed; top: 12px; left: 12px; z-index: 50;
+    background: rgba(255,255,255,0.85); color: #ad1457; padding: 6px 11px;
+    text-decoration: none; border-radius: 12px; font-size: 14px; font-weight: bold;
+  }
+
+  #hud { text-align: center; margin-bottom: 10px; }
+  .chip {
+    display: inline-block;
+    background: rgba(255,255,255,0.92); border: 4px solid #ec407a; border-radius: 30px;
+    padding: 8px 22px; font-size: clamp(18px, 3.5vw, 26px); font-weight: bold; color: #ad1457;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.1);
+  }
+
+  #stage {
+    display: flex; justify-content: center;
+  }
+  #faceWrap {
+    position: relative;
+    width: min(92vw, 430px);
+  }
+  #faceSvg { width: 100%; height: auto; display: block; }
+  #faceSvg .zone { cursor: pointer; }
+  .burst {
+    position: absolute; pointer-events: none; font-size: 22px;
+    animation: floatFade 0.8s ease-out forwards; z-index: 5;
+  }
+  @keyframes floatFade {
+    0%   { transform: translate(0, 0) scale(0.6); opacity: 1; }
+    100% { transform: translate(var(--dx), var(--dy)) scale(1.3); opacity: 0; }
+  }
+
+  #hint {
+    text-align: center; margin: 12px 0 10px;
+    color: #880e4f; font-size: clamp(15px, 3.4vw, 20px); font-weight: bold;
+    text-shadow: 0 1px 3px rgba(255,255,255,0.9);
+  }
+
+  /* makeup tray */
+  #tray {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+    background: rgba(255,255,255,0.75);
+    border-top: 4px solid #f8bbd0;
+    padding: 10px 8px 12px;
+    display: flex; justify-content: center; align-items: flex-end;
+    gap: 8px; flex-wrap: wrap;
+  }
+  .item {
+    width: clamp(52px, 12vw, 68px); height: clamp(52px, 12vw, 68px);
+    border-radius: 18px; border: 4px solid #f8bbd0;
+    font-family: inherit; font-size: clamp(24px, 5vw, 32px); line-height: 1;
+    cursor: pointer; box-shadow: 0 4px 0 rgba(0,0,0,0.15);
+    display: flex; align-items: center; justify-content: center;
+    position: relative; background: #fff;
+    transition: transform 0.1s;
+  }
+  .item .dot {
+    position: absolute; right: 5px; bottom: 5px;
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,0.2);
+  }
+  .item:hover { transform: scale(1.07); }
+  .item.selected { border-color: #d81b60; transform: scale(1.15); box-shadow: 0 0 0 4px #fce4ec, 0 4px 0 rgba(0,0,0,0.15); }
+  .sep { width: 4px; height: 56px; border-radius: 2px; background: #f8bbd0; margin: 0 4px; align-self: center; }
+
+  #doneBtn {
+    font-family: inherit; font-weight: bold;
+    font-size: clamp(16px, 3.4vw, 22px);
+    background: #ec407a; color: #fff; border: 4px solid #d81b60;
+    border-radius: 18px; padding: 12px 18px; cursor: pointer;
+    box-shadow: 0 4px 0 #ad1457; height: clamp(52px, 12vw, 68px);
+  }
+  #doneBtn:active { transform: translateY(3px); box-shadow: 0 1px 0 #ad1457; }
+
+  /* overlay */
+  #overlay {
+    position: fixed; inset: 0; z-index: 30;
+    background: rgba(90,10,50,0.5);
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .card {
+    background: #fff8fa; border: 4px solid #ec407a; border-radius: 26px;
+    padding: 26px 22px; text-align: center; max-width: 480px;
+    box-shadow: 0 14px 40px rgba(0,0,0,0.4);
+  }
+  .card h2 { font-size: clamp(26px, 7vw, 42px); color: #c2185b; margin-bottom: 12px; }
+  .card p { font-size: clamp(16px, 3.6vw, 22px); color: #5c2a44; margin-bottom: 8px; line-height: 1.5; }
+  .card button {
+    margin-top: 16px; font-family: inherit; font-size: clamp(20px, 5vw, 28px); font-weight: bold;
+    background: #ec407a; color: #fff; border: none; border-radius: 20px; padding: 14px 34px;
+    cursor: pointer; box-shadow: 0 6px 0 #ad1457;
+  }
+  .card button:active { transform: translateY(3px); box-shadow: 0 3px 0 #ad1457; }
+  .hidden { display: none !important; }
+  .keyhint { font-size: clamp(13px, 3vw, 17px); color: #bb7d97; margin-top: 6px; }
+
+  /* confetti */
+  .confetti {
+    position: fixed;
+    width: 12px; height: 12px;
+    top: -20px;
+    pointer-events: none;
+    z-index: 100;
+    animation: fall 3s linear forwards;
+  }
+  @keyframes fall {
+    to { transform: translateY(110vh) rotate(720deg); }
+  }
+</style>
+</head>
+<body>
+<a class="home" href="index.html">⌂ Home</a>
+
+<div id="app">
+  <div id="hud"><div class="chip">💄 Sabrina's Makeup Salon 💖</div></div>
+
+  <div id="stage">
+    <div id="faceWrap">
+      <svg id="faceSvg" viewBox="0 0 400 460" xmlns="http://www.w3.org/2000/svg">
+        <!-- hair -->
+        <ellipse cx="200" cy="205" rx="152" ry="168" fill="#6d4c41"/>
+        <ellipse cx="62" cy="290" rx="38" ry="80" fill="#6d4c41"/>
+        <ellipse cx="338" cy="290" rx="38" ry="80" fill="#6d4c41"/>
+        <!-- face -->
+        <ellipse cx="200" cy="235" rx="118" ry="132" fill="#ffe0b2" stroke="#e6b988" stroke-width="3"/>
+        <!-- bangs -->
+        <path d="M 84 215 Q 92 95 200 92 Q 308 95 316 215 Q 268 165 200 168 Q 132 165 84 215 Z" fill="#6d4c41"/>
+        <!-- bow -->
+        <text x="292" y="108" font-size="58">🎀</text>
+        <!-- eyebrows -->
+        <path d="M 128 192 Q 152 178 176 190" stroke="#5d4037" stroke-width="6" fill="none" stroke-linecap="round"/>
+        <path d="M 224 190 Q 248 178 272 192" stroke="#5d4037" stroke-width="6" fill="none" stroke-linecap="round"/>
+        <!-- eyeshadow lids (colored by the game) -->
+        <ellipse id="lidL" cx="152" cy="216" rx="27" ry="15" fill="#ffe0b2" opacity="0"/>
+        <ellipse id="lidR" cx="248" cy="216" rx="27" ry="15" fill="#ffe0b2" opacity="0"/>
+        <!-- eyes -->
+        <ellipse cx="152" cy="232" rx="21" ry="25" fill="#fff" stroke="#d7a86e" stroke-width="2"/>
+        <ellipse cx="248" cy="232" rx="21" ry="25" fill="#fff" stroke="#d7a86e" stroke-width="2"/>
+        <circle id="irisL" cx="152" cy="234" r="11" fill="#5d4037"/>
+        <circle id="irisR" cx="248" cy="234" r="11" fill="#5d4037"/>
+        <circle cx="156" cy="230" r="3.5" fill="#fff"/>
+        <circle cx="252" cy="230" r="3.5" fill="#fff"/>
+        <!-- lashes -->
+        <path d="M 133 216 L 126 210 M 152 208 L 152 200 M 171 216 L 178 210" stroke="#5d4037" stroke-width="4" stroke-linecap="round"/>
+        <path d="M 229 216 L 222 210 M 248 208 L 248 200 M 267 216 L 274 210" stroke="#5d4037" stroke-width="4" stroke-linecap="round"/>
+        <!-- nose -->
+        <path d="M 198 258 Q 192 274 203 277" stroke="#e6b988" stroke-width="5" fill="none" stroke-linecap="round"/>
+        <!-- cheeks (colored by the game) -->
+        <circle id="cheekL" cx="124" cy="290" r="24" fill="#f48fb1" opacity="0"/>
+        <circle id="cheekR" cx="276" cy="290" r="24" fill="#f48fb1" opacity="0"/>
+        <!-- lips (colored by the game) -->
+        <path id="lips" d="M 158 322 Q 200 296 242 322 Q 200 352 158 322 Z" fill="#f8bbd0"/>
+        <!-- crown (toggle) -->
+        <text id="crown" x="163" y="86" font-size="76" style="display:none">👑</text>
+        <!-- sticker layer -->
+        <g id="stickers"></g>
+        <!-- invisible tap zones -->
+        <ellipse class="zone" data-zone="lips"   cx="200" cy="322" rx="52" ry="30" fill="#fff" opacity="0.01"/>
+        <circle  class="zone" data-zone="cheekL" cx="124" cy="290" r="40" fill="#fff" opacity="0.01"/>
+        <circle  class="zone" data-zone="cheekR" cx="276" cy="290" r="40" fill="#fff" opacity="0.01"/>
+        <rect    class="zone" data-zone="eyeL" x="122" y="196" width="62" height="34" fill="#fff" opacity="0.01"/>
+        <rect    class="zone" data-zone="eyeR" x="216" y="196" width="62" height="34" fill="#fff" opacity="0.01"/>
+      </svg>
+    </div>
+  </div>
+
+  <div id="hint">Pick a makeup, then tap your lips, cheeks, or eyes! ✨</div>
+</div>
+
+<div id="tray">
+  <button class="item" data-type="lip" data-color="#e53935" data-label="Cherry red lips" style="background:#ffcdd2">💄<span class="dot" style="background:#e53935"></span></button>
+  <button class="item" data-type="lip" data-color="#ec407a" data-label="Bubblegum pink lips" style="background:#f8bbd0">💄<span class="dot" style="background:#ec407a"></span></button>
+  <button class="item" data-type="lip" data-color="#ab47bc" data-label="Grape purple lips" style="background:#e1bee7">💄<span class="dot" style="background:#ab47bc"></span></button>
+  <div class="sep"></div>
+  <button class="item" data-type="blush" data-color="#f06292" data-label="Rosy cheeks" style="background:#fce4ec">🌸<span class="dot" style="background:#f06292"></span></button>
+  <button class="item" data-type="blush" data-color="#ff8a65" data-label="Peachy cheeks" style="background:#fbe9e7">🌸<span class="dot" style="background:#ff8a65"></span></button>
+  <div class="sep"></div>
+  <button class="item" data-type="shadow" data-color="#42a5f5" data-label="Sparkly blue eyes" style="background:#e3f2fd">👀<span class="dot" style="background:#42a5f5"></span></button>
+  <button class="item" data-type="shadow" data-color="#ab47bc" data-label="Sparkly purple eyes" style="background:#f3e5f5">👀<span class="dot" style="background:#ab47bc"></span></button>
+  <button class="item" data-type="shadow" data-color="#ffd54f" data-label="Golden shimmer eyes" style="background:#fff9c4">👀<span class="dot" style="background:#ffd54f"></span></button>
+  <div class="sep"></div>
+  <button class="item" data-type="crown" style="background:#fff9c4">👑</button>
+  <button class="item" data-type="sparkle" style="background:#ffffff">✨</button>
+  <button class="item" data-type="reset" style="background:#eceff1">🔄</button>
+  <button id="doneBtn">Done! 💖</button>
+</div>
+
+<div id="overlay">
+  <div class="card" id="card">
+    <h2>💄 Sabrina's Makeup Salon!</h2>
+    <p>Welcome to your salon! Today's model is <b>you</b>! 🎀</p>
+    <p><b>Pick a makeup</b> from the tray below, then <b>tap your lips, cheeks, or eyes</b> to put it on!</p>
+    <p>Add a crown 👑 and sparkles ✨ — then press <b>Done</b> for the sparkle party!</p>
+    <p class="keyhint">Every color is pretty — there's no wrong way! 💖</p>
+    <button id="startBtn">Open the salon! ▶</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const overlay = document.getElementById('overlay');
+  const card = document.getElementById('card');
+  const hintEl = document.getElementById('hint');
+  const faceSvg = document.getElementById('faceSvg');
+  const faceWrap = document.getElementById('faceWrap');
+  const lips = document.getElementById('lips');
+  const lidL = document.getElementById('lidL'), lidR = document.getElementById('lidR');
+  const cheekL = document.getElementById('cheekL'), cheekR = document.getElementById('cheekR');
+  const crown = document.getElementById('crown');
+  const stickers = document.getElementById('stickers');
+
+  let selected = null;   // { type, color, label }
+  let sparkleCount = 0;
+  const LIPS_DEFAULT = '#f8bbd0';
+
+  function speak(text, pitch = 1.35) {
+    if (!('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US'; u.rate = 1.0; u.pitch = pitch;
+    speechSynthesis.speak(u);
+  }
+
+  // soft pop sound
+  let audio = null;
+  function pop() {
+    try {
+      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+      const t = audio.currentTime;
+      const o = audio.createOscillator(), g = audio.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(880, t);
+      o.frequency.exponentialRampToValueAtTime(440, t + 0.09);
+      g.gain.setValueAtTime(0.16, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+      o.connect(g).connect(audio.destination);
+      o.start(t); o.stop(t + 0.14);
+    } catch (e) { /* no sound is fine */ }
+  }
+
+  // little sparkle burst around a point on the face
+  function sparkleBurst(clientX, clientY, ch = '✨') {
+    const rect = faceWrap.getBoundingClientRect();
+    for (let i = 0; i < 6; i++) {
+      const s = document.createElement('span');
+      s.className = 'burst';
+      s.textContent = ch;
+      s.style.left = (clientX - rect.left) + 'px';
+      s.style.top = (clientY - rect.top) + 'px';
+      s.style.setProperty('--dx', ((Math.random() - 0.5) * 90) + 'px');
+      s.style.setProperty('--dy', (-30 - Math.random() * 50) + 'px');
+      faceWrap.appendChild(s);
+      setTimeout(() => s.remove(), 850);
+    }
+  }
+
+  function burstConfetti() {
+    const colors = ['#ff5252','#ffeb3b','#4caf50','#2196f3','#e040fb','#ff9800','#ec407a'];
+    for (let i = 0; i < 36; i++) {
+      const c = document.createElement('div');
+      c.className = 'confetti';
+      c.style.left = Math.random() * 100 + 'vw';
+      c.style.background = colors[i % colors.length];
+      c.style.borderRadius = Math.random() < 0.5 ? '50%' : '2px';
+      c.style.animationDuration = (2 + Math.random() * 2) + 's';
+      document.body.appendChild(c);
+      setTimeout(() => c.remove(), 4200);
+    }
+  }
+
+  // ---------- tray ----------
+  document.querySelectorAll('#tray .item').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const type = btn.dataset.type;
+      if (type === 'reset') { resetFace(); return; }
+      if (type === 'crown') {
+        crown.style.display = crown.style.display === 'none' ? '' : 'none';
+        pop();
+        sparkleBurst(200, 90);
+        speak(crown.style.display === 'none' ? 'Bye-bye crown!' : 'A crown fits a princess!', 1.4);
+        return;
+      }
+      document.querySelectorAll('#tray .item').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selected = { type, color: btn.dataset.color, label: btn.dataset.label };
+      hintEl.textContent = type === 'sparkle'
+        ? '✨ Now tap anywhere on your face to stick a sparkle!'
+        : 'Pretty! Now tap ' + (type === 'lip' ? 'your lips' : type === 'blush' ? 'your cheeks' : 'your eyes') + '!';
+    });
+  });
+
+  // ---------- face zones ----------
+  faceSvg.querySelectorAll('.zone').forEach(zone => {
+    zone.addEventListener('click', e => {
+      if (!selected) {
+        hintEl.textContent = 'Pick a makeup from the tray first! 💄';
+        return;
+      }
+      if (selected.type === 'sparkle') {
+        addSticker(e.clientX, e.clientY);
+        return;
+      }
+      const cx = Number(zone.getAttribute('cx') || 0) + Number(zone.getAttribute('x') || 0);
+      const cy = Number(zone.getAttribute('cy') || 0) + Number(zone.getAttribute('y') || 0);
+      const pt = svgPoint(cx || 200, cy || 230);
+      apply(selected, pt.x, pt.y, e);
+    });
+  });
+
+  function svgPoint(x, y) {
+    // convert svg coords to on-screen point (for the sparkle burst)
+    const pt = faceSvg.createSVGPoint();
+    pt.x = x; pt.y = y;
+    const m = faceSvg.getScreenCTM();
+    const p = pt.matrixTransform(m);
+    return { x: p.x, y: p.y };
+  }
+
+  function apply(item, sx, sy, ev) {
+    pop();
+    sparkleBurst(ev ? ev.clientX : sx, ev ? ev.clientY : sy, item.type === 'shadow' ? '💫' : '✨');
+    if (item.type === 'lip') {
+      lips.setAttribute('fill', item.color);
+      lips.setAttribute('stroke', '#c2185b');
+      lips.setAttribute('stroke-width', '2');
+    } else if (item.type === 'blush') {
+      cheekL.setAttribute('fill', item.color); cheekL.setAttribute('opacity', '0.55');
+      cheekR.setAttribute('fill', item.color); cheekR.setAttribute('opacity', '0.55');
+    } else if (item.type === 'shadow') {
+      lidL.setAttribute('fill', item.color); lidL.setAttribute('opacity', '0.7');
+      lidR.setAttribute('fill', item.color); lidR.setAttribute('opacity', '0.7');
+    }
+    speak(item.label + '!', 1.45);
+  }
+
+  function addSticker(clientX, clientY) {
+    if (sparkleCount >= 14) { hintEl.textContent = 'So many sparkles! Press Done! 💖'; return; }
+    sparkleCount++;
+    const rect = faceSvg.getBoundingClientRect();
+    const x = ((clientX - rect.left) / rect.width) * 400;
+    const y = ((clientY - rect.top) / (rect.height)) * 460;
+    const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    t.setAttribute('x', x - 14); t.setAttribute('y', y + 14);
+    t.setAttribute('font-size', 28 + Math.floor(Math.random() * 14));
+    t.textContent = Math.random() < 0.35 ? '💖' : '✨';
+    stickers.appendChild(t);
+    pop();
+    sparkleBurst(clientX, clientY);
+    speak('Sparkles!', 1.5);
+  }
+
+  function resetFace() {
+    lips.setAttribute('fill', LIPS_DEFAULT);
+    lips.setAttribute('stroke-width', '0');
+    [lidL, lidR].forEach(l => l.setAttribute('opacity', '0'));
+    [cheekL, cheekR].forEach(c => c.setAttribute('opacity', '0'));
+    crown.style.display = 'none';
+    stickers.innerHTML = '';
+    sparkleCount = 0;
+    document.querySelectorAll('#tray .item').forEach(b => b.classList.remove('selected'));
+    selected = null;
+    hintEl.textContent = 'All clean! Pick a makeup and start again! 💄';
+    speak('All clean! Let us try a new look!', 1.4);
+  }
+
+  // ---------- done / celebration ----------
+  document.getElementById('doneBtn').addEventListener('click', () => {
+    burstConfetti();
+    setTimeout(burstConfetti, 500);
+    speak('Ta-da! You look so pretty! Great job, Sabrina!', 1.4);
+    card.innerHTML = `
+      <h2>💖 Ta-da!! 💖</h2>
+      <p>What a <strong>gorgeous</strong> look! You are the prettiest star in the salon! ⭐</p>
+      <p>Bear says: five stars for the makeup artist! ⭐⭐⭐⭐⭐</p>
+      <button id="againBtn">New look 🔄</button>`;
+    overlay.classList.remove('hidden');
+    document.getElementById('againBtn').addEventListener('click', () => {
+      resetFace();
+      overlay.classList.add('hidden');
+    });
+  });
+
+  document.getElementById('startBtn').addEventListener('click', () => {
+    overlay.classList.add('hidden');
+    speak('Welcome to the makeup salon! Pick a makeup and tap to try it on!', 1.35);
+  });
+})();
+</script>
+</body>
+</html>
