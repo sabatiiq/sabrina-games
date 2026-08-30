@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Sabrina's Book Worm! 📚</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    height: 100%; overflow: hidden;
+    font-family: 'Comic Sans MS', 'Marker Felt', cursive, sans-serif;
+    user-select: none; touch-action: none;
+    background: #fff3e0;
+  }
+  #view { position: absolute; inset: 0; display: block; }
+
+  #hud {
+    position: absolute; top: 10px; left: 0; right: 0; z-index: 5;
+    display: flex; justify-content: center; gap: 10px; pointer-events: none;
+  }
+  .chip {
+    background: rgba(255,255,255,0.88); border: 3px solid #8d6e63; border-radius: 18px;
+    padding: 6px 18px; font-size: clamp(18px, 4.5vw, 28px); font-weight: bold; color: #4e342e;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.15);
+  }
+  a.home {
+    position: absolute; top: 12px; left: 12px; z-index: 6;
+    background: rgba(255,255,255,0.75); color: #4e342e; padding: 6px 11px;
+    text-decoration: none; border-radius: 12px; font-size: 14px; font-weight: bold; pointer-events: auto;
+  }
+  #hint {
+    position: absolute; bottom: 18px; left: 0; right: 0; z-index: 5; text-align: center;
+    color: #6d4c41; font-size: clamp(15px, 3.6vw, 20px); font-weight: bold; pointer-events: none;
+    text-shadow: 0 1px 3px rgba(255,255,255,0.9);
+  }
+  #storyBtn {
+    position: absolute; right: 16px; bottom: 16px; z-index: 6;
+    width: clamp(64px, 14vw, 92px); height: clamp(64px, 14vw, 92px);
+    font-size: clamp(34px, 7vw, 50px); line-height: 1;
+    background: #ffe082; border: 4px solid #ffca28; border-radius: 50%;
+    box-shadow: 0 5px 0 #ff8f00; cursor: pointer; pointer-events: auto;
+    font-family: inherit;
+  }
+  #storyBtn:active { transform: translateY(3px); box-shadow: 0 2px 0 #ff8f00; }
+
+  #overlay {
+    position: absolute; inset: 0; z-index: 10;
+    background: rgba(66,40,20,0.55);
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .card {
+    background: #fff8e1; border: 4px solid #ffb74d; border-radius: 26px;
+    padding: 26px 22px; text-align: center; max-width: 480px;
+    box-shadow: 0 14px 40px rgba(0,0,0,0.4);
+  }
+  .card h2 { font-size: clamp(26px, 7vw, 42px); color: #e65100; margin-bottom: 12px; }
+  .card p { font-size: clamp(16px, 3.6vw, 22px); color: #5d4037; margin-bottom: 8px; line-height: 1.5; }
+  .card button {
+    margin-top: 16px; font-family: inherit; font-size: clamp(20px, 5vw, 28px); font-weight: bold;
+    background: #ff7043; color: #fff; border: none; border-radius: 20px; padding: 14px 34px;
+    cursor: pointer; box-shadow: 0 6px 0 #d84315;
+  }
+  .card button:active { transform: translateY(3px); box-shadow: 0 3px 0 #d84315; }
+  .hidden { display: none !important; }
+  .keyhint { font-size: clamp(13px, 3vw, 17px); color: #a1887f; margin-top: 6px; }
+</style>
+</head>
+<body>
+<a class="home" href="index.html">⌂ Home</a>
+<canvas id="view"></canvas>
+
+<div id="hud">
+  <div class="chip">📚 <span id="bookCount">0</span>/<span id="bookTotal">15</span></div>
+  <div class="chip">⭐ <span id="starCount">0</span></div>
+</div>
+<div id="hint">👆 Drag left and right to catch the books!</div>
+<button id="storyBtn" title="Read me a story!">📖</button>
+
+<div id="overlay">
+  <div class="card" id="card">
+    <h2>📚 Sabrina's Book Worm!</h2>
+    <p>Nib the Book Worm 🐛 loves stories — catch the falling books for the library shelf!</p>
+    <p><b>Touch and drag</b> left and right (or press ⬅️ ➡️ arrow keys) to move Nib.</p>
+    <p>Catch <b>15 books</b> to fill the shelf! Grab sparkly stars ⭐, and storybooks 📖 read you a tiny tale!</p>
+    <p class="keyhint">You can never lose — even the sleepy cloud just makes Nib yawn! 😴</p>
+    <button id="startBtn">Start Reading! ▶</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('view');
+  const ctx = canvas.getContext('2d');
+  const overlay = document.getElementById('overlay');
+  const card = document.getElementById('card');
+  const bookCountEl = document.getElementById('bookCount');
+  const starCountEl = document.getElementById('starCount');
+  const hintEl = document.getElementById('hint');
+  const storyBtn = document.getElementById('storyBtn');
+
+  let W = 0, H = 0, dpr = 1;
+
+  const GOAL = 15;
+  const KEY_SPEED = 470; // px/s with arrow keys
+
+  const BOOK_EMOJI  = ['📕', '📗', '📘', '📙'];
+  const BOOK_SPEECH = ['A red book!', 'A green book!', 'A blue book!', 'An orange book!'];
+  const STORIES = [
+    'Once upon a time, a little bear found a pot of golden honey!',
+    'The moon whispered goodnight to every sleepy star.',
+    'A tiny seed grew up to be a great big sunflower!',
+    'The friendly dragon baked cookies for the whole village.',
+    'The lost kitten followed the butterflies all the way home.'
+  ];
+  const SPINE_COLORS = ['#e53935','#43a047','#1e88e5','#fb8c00','#8e24aa','#00897b','#d81b60','#fdd835'];
+
+  let worm, books, dust, cloud, shelves;
+  let booksGot, starsGot, won, running;
+  let slowT, yawnCD, spawnT, starT, storyT;
+  const input = { drag: false, targetX: 0, left: false, right: false };
+  const fx = [];
+
+  function wormY() { return H - 86; }
+
+  // ---------- build the level ----------
+  function buildShelves() {
+    shelves = [];
+    const rows = [H * 0.26, H * 0.47];
+    for (const barY of rows) {
+      const spines = [];
+      let x = 34;
+      while (x < W - 48) {
+        const w = 13 + Math.random() * 9;
+        const h = 46 + Math.random() * 20;
+        spines.push({ x, w, h, c: SPINE_COLORS[Math.floor(Math.random() * SPINE_COLORS.length)] });
+        x += w + 2;
+      }
+      shelves.push({ barY, spines });
+    }
+  }
+
+  function buildLevel() {
+    books = [];
+    booksGot = 0; starsGot = 0; won = false;
+    slowT = 0; yawnCD = 0;
+    spawnT = 0.6; starT = 5; storyT = 9;
+    worm = { x: W / 2 };
+    input.drag = false; input.left = false; input.right = false;
+    input.targetX = worm.x;
+    cloud = { x: W * 0.22, y: H * 0.34, dir: 1 };
+    dust = [];
+    for (let i = 0; i < 12; i++) {
+      dust.push({ x: Math.random() * W, y: Math.random() * H * 0.8, s: 0.5 + Math.random(), ph: Math.random() * 6 });
+    }
+    buildShelves();
+    bookCountEl.textContent = '0';
+    starCountEl.textContent = '0';
+    hintEl.classList.remove('hidden');
+  }
+
+  function sizeCanvas() {
+    dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function speak(text, pitch = 1.3) {
+    if (!('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US'; u.rate = 1.0; u.pitch = pitch;
+    speechSynthesis.speak(u);
+  }
+
+  function spawnThing(kind) {
+    const n = Math.floor(Math.random() * BOOK_EMOJI.length);
+    books.push({
+      x: 50 + Math.random() * (W - 100), y: -40,
+      vy: 95 + Math.random() * 75,
+      sway: 14 + Math.random() * 22, ph: Math.random() * 6,
+      kind,
+      e: kind === 'book' ? BOOK_EMOJI[n] : kind === 'star' ? '⭐' : '📖',
+      name: BOOK_SPEECH[n]
+    });
+  }
+
+  // ---------- loop ----------
+  let lastT = 0;
+  function tick(t) {
+    if (!running) return;
+    const dt = Math.min(0.04, (t - lastT) / 1000 || 0);
+    lastT = t;
+    update(dt);
+    render();
+    requestAnimationFrame(tick);
+  }
+
+  function update(dt) {
+    slowT = Math.max(0, slowT - dt);
+    yawnCD = Math.max(0, yawnCD - dt);
+    const speedMult = slowT > 0 ? 0.5 : 1;
+
+    // movement: finger first, arrow keys otherwise
+    if (input.drag) {
+      worm.x += (input.targetX - worm.x) * Math.min(1, 8 * dt * speedMult + 0.001);
+    } else {
+      input.targetX += ((input.right ? 1 : 0) - (input.left ? 1 : 0)) * KEY_SPEED * dt * speedMult;
+      worm.x += (input.targetX - worm.x) * Math.min(1, 10 * dt);
+    }
+    worm.x = Math.max(46, Math.min(W - 46, worm.x));
+    input.targetX = Math.max(46, Math.min(W - 46, input.targetX));
+
+    // books, stars and storybooks fall from the top
+    spawnT -= dt; starT -= dt; storyT -= dt;
+    if (spawnT <= 0) { spawnT = 0.85 + Math.random() * 0.5; spawnThing('book'); }
+    if (starT <= 0)  { starT = 6 + Math.random() * 3; spawnThing('star'); }
+    if (storyT <= 0) { storyT = 9 + Math.random() * 4; spawnThing('story'); }
+
+    for (let i = books.length - 1; i >= 0; i--) {
+      const b = books[i];
+      b.y += b.vy * dt;
+      b.x += Math.sin(performance.now() / 600 + b.ph) * b.sway * dt;
+      // catch!
+      if (Math.abs(b.x - worm.x) < 55 && Math.abs(b.y - wormY()) < 62) {
+        books.splice(i, 1);
+        if (b.kind === 'book') {
+          booksGot++;
+          bookCountEl.textContent = booksGot;
+          sparkle(b.x, b.y, '✨');
+          popText('+1', b.x, b.y, '#6d4c41');
+          if (booksGot % 5 === 0) speak(booksGot + ' books! Great catching!', 1.4);
+          else speak(b.name, 1.4);
+          if (!won && booksGot >= GOAL) { won = true; winGame(); }
+        } else if (b.kind === 'star') {
+          starsGot++;
+          starCountEl.textContent = starsGot;
+          sparkle(b.x, b.y, '⭐');
+          popText('Sparkle!', b.x, b.y, '#f9a825');
+          speak('Sparkly star!', 1.5);
+        } else {
+          sparkle(b.x, b.y, '📖');
+          popText('Story time!', b.x, b.y, '#e65100');
+          speak(STORIES[Math.floor(Math.random() * STORIES.length)], 1.35);
+        }
+        continue;
+      }
+      if (b.y > H + 50) books.splice(i, 1); // drifted past — no worries, more are coming!
+    }
+
+    // the sleepy cloud drifts by — a yawn only, never a loss
+    cloud.x += cloud.dir * 44 * dt;
+    if (cloud.x > W + 90) cloud.x = -90;
+    if (yawnCD <= 0 && Math.abs(cloud.x - worm.x) < 58 && Math.abs(cloud.y - wormY()) < 60) {
+      yawnCD = 7; slowT = 2.2;
+      popText('Yaaawn… 💤', worm.x, wormY() - 60, '#5c6bc0');
+      for (let i = 0; i < 5; i++) fx.push({ x: worm.x, y: wormY() - 40, ch: '💤', vx: (Math.random() - 0.5) * 60, vy: -50 - Math.random() * 40, life: 1.0, t: 0 });
+      speak('So sleepy…', 0.8);
+    }
+
+    // golden dust motes float up
+    for (const d of dust) {
+      d.y -= 12 * d.s * dt;
+      if (d.y < -20) { d.y = H + 20; d.x = Math.random() * W; }
+    }
+
+    for (let i = fx.length - 1; i >= 0; i--) {
+      const p = fx[i]; p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt;
+      if (p.t >= p.life) fx.splice(i, 1);
+    }
+  }
+
+  function sparkle(x, y, ch) { for (let i = 0; i < 7; i++) fx.push({ x, y, ch, vx: (Math.random()-0.5)*130, vy: -70 - Math.random()*90, life: 0.8, t: 0 }); }
+  function popText(txt, x, y, color) { fx.push({ x, y, txt, color, vx: 0, vy: -60, life: 0.9, t: 0 }); }
+
+  // ---------- render ----------
+  function render() {
+    const now = performance.now();
+
+    // cozy library wall
+    const wall = ctx.createLinearGradient(0, 0, 0, H);
+    wall.addColorStop(0, '#ffe0b2'); wall.addColorStop(1, '#ffcc80');
+    ctx.fillStyle = wall; ctx.fillRect(0, 0, W, H);
+
+    // warm lamp glow in the corner
+    const glow = ctx.createRadialGradient(W - 80, 90, 10, W - 80, 90, 190);
+    glow.addColorStop(0, 'rgba(255,241,150,0.55)'); glow.addColorStop(1, 'rgba(255,241,150,0)');
+    ctx.fillStyle = glow; ctx.fillRect(W - 300, 0, 300, 320);
+    ctx.strokeStyle = '#6d4c41'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(W - 80, 0); ctx.lineTo(W - 80, 52); ctx.stroke();
+    ctx.fillStyle = '#ffab40';
+    ctx.beginPath(); ctx.moveTo(W - 112, 76); ctx.lineTo(W - 48, 76); ctx.lineTo(W - 62, 48); ctx.lineTo(W - 98, 48); ctx.closePath(); ctx.fill();
+
+    // picture frame on the wall
+    ctx.font = '40px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('🖼️', Math.max(70, W * 0.16), H * 0.12);
+
+    // bookshelves
+    for (const sh of shelves) {
+      for (const s of sh.spines) {
+        ctx.fillStyle = s.c;
+        ctx.fillRect(s.x, sh.barY - s.h, s.w, s.h);
+        ctx.fillStyle = 'rgba(255,255,255,0.22)';
+        ctx.fillRect(s.x, sh.barY - s.h, 3, s.h);
+      }
+      ctx.fillStyle = '#8d6e63';
+      ctx.fillRect(28, sh.barY, W - 56, 13);
+      ctx.fillStyle = '#a1887f';
+      ctx.fillRect(28, sh.barY + 13, W - 56, 5);
+    }
+
+    // golden dust motes
+    for (const d of dust) {
+      ctx.globalAlpha = 0.3 + 0.15 * Math.sin(now / 400 + d.ph);
+      ctx.fillStyle = '#ffe082';
+      ctx.beginPath(); ctx.arc(d.x, d.y, 2.5 * d.s, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    // the sleepy cloud
+    ctx.globalAlpha = 0.85;
+    ctx.font = '64px serif';
+    ctx.fillText('☁️', cloud.x, cloud.y);
+    ctx.font = '22px serif';
+    ctx.fillText('💤', cloud.x + 30, cloud.y - 34 + Math.sin(now / 500) * 4);
+    ctx.globalAlpha = 1;
+
+    // rug
+    ctx.fillStyle = '#ef9a9a';
+    ctx.beginPath(); ctx.ellipse(W / 2, H - 22, Math.min(W * 0.44, 460), 42, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#f8bbd0'; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.ellipse(W / 2, H - 22, Math.min(W * 0.44, 460) - 10, 33, 0, 0, Math.PI * 2); ctx.stroke();
+
+    // sleeping cat on the rug
+    ctx.font = '34px serif';
+    ctx.fillText('🐱', Math.min(W - 70, W / 2 + Math.min(W * 0.44, 460) * 0.55), H - 40);
+
+    // falling books, stars, storybooks
+    for (const b of books) {
+      ctx.save();
+      ctx.translate(b.x, b.y);
+      ctx.rotate(Math.sin(now / 600 + b.ph) * 0.25);
+      ctx.font = (b.kind === 'book' ? 40 : b.kind === 'star' ? 36 : 44) + 'px serif';
+      ctx.fillText(b.e, 0, 0);
+      ctx.restore();
+    }
+
+    // Nib the bookworm, wiggling happily
+    const wy = wormY() + Math.sin(now / 280) * 4;
+    ctx.save();
+    ctx.translate(worm.x, wy);
+    ctx.rotate(Math.sin(now / 170) * 0.07);
+    ctx.font = '58px serif';
+    ctx.fillText('🐛', 0, 0);
+    ctx.restore();
+    if (slowT > 0) { ctx.font = '24px serif'; ctx.fillText('💤', worm.x + 34, wy - 40); }
+
+    // fx
+    for (const p of fx) {
+      const a = 1 - p.t / p.life;
+      ctx.globalAlpha = Math.max(0, a);
+      if (p.txt) { ctx.font = 'bold 26px "Comic Sans MS", serif'; ctx.fillStyle = p.color || '#f9a825'; ctx.textAlign = 'center'; ctx.fillText(p.txt, p.x, p.y); }
+      else { ctx.font = '24px serif'; ctx.textAlign = 'center'; ctx.fillText(p.ch, p.x, p.y); }
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // ---------- win ----------
+  function winGame() {
+    running = false;
+    hintEl.classList.add('hidden');
+    const msg = starsGot >= 5 ? 'SUPER READER — so many sparkly stars! 🌟'
+              : starsGot >= 2 ? 'Wonderful catching, Sabrina! 💪'
+              : 'You filled the whole bookshelf! 📚';
+    card.innerHTML = `
+      <h2>📚 Bookshelf full! 🎉</h2>
+      <p>Nib caught <strong>${booksGot}</strong> books and found <strong>${starsGot}</strong> sparkly ${starsGot === 1 ? 'star' : 'stars'} ⭐!</p>
+      <p>${msg}</p>
+      <button id="againBtn">Read again ▶</button>`;
+    overlay.classList.remove('hidden');
+    document.getElementById('againBtn').addEventListener('click', start);
+    speak('Hooray! You filled the bookshelf! You are a super reader!', 1.4);
+    for (let i = 0; i < 24; i++) {
+      sparkle(worm.x + (Math.random()-0.5)*300, wormY() + (Math.random()-0.5)*180,
+        ['✨','⭐','📚','🎈','📖'][Math.floor(Math.random()*5)]);
+    }
+  }
+
+  function start() {
+    overlay.classList.add('hidden');
+    sizeCanvas();
+    buildLevel();
+    running = true;
+    lastT = performance.now();
+    requestAnimationFrame(tick);
+    speak('Story time! Catch the books!', 1.4);
+  }
+
+  // ---------- input: drag to move ----------
+  canvas.addEventListener('pointerdown', e => { input.drag = true; input.targetX = e.clientX; e.preventDefault(); });
+  canvas.addEventListener('pointermove', e => { if (input.drag) input.targetX = e.clientX; });
+  window.addEventListener('pointerup', () => { input.drag = false; });
+  canvas.addEventListener('pointercancel', () => { input.drag = false; });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft'  || e.key === 'a') { input.left = true;  e.preventDefault(); }
+    if (e.key === 'ArrowRight' || e.key === 'd') { input.right = true; e.preventDefault(); }
+  });
+  document.addEventListener('keyup', e => {
+    if (e.key === 'ArrowLeft'  || e.key === 'a') input.left = false;
+    if (e.key === 'ArrowRight' || e.key === 'd') input.right = false;
+  });
+
+  storyBtn.addEventListener('pointerdown', e => e.stopPropagation());
+  storyBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    speak(STORIES[Math.floor(Math.random() * STORIES.length)], 1.35);
+    popText('📖 Once upon a time…', worm ? worm.x : W / 2, (wormY() || H - 86) - 70, '#e65100');
+    sparkle(worm ? worm.x : W / 2, (wormY() || H - 86) - 40, '📖');
+  });
+
+  window.addEventListener('resize', () => { sizeCanvas(); if (worm) buildShelves(); });
+
+  document.getElementById('startBtn').addEventListener('click', start);
+  sizeCanvas();
+})();
+</script>
+</body>
+</html>
