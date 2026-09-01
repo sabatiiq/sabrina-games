@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Sabrina's Toy Shop! 🏪</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    height: 100%; overflow: hidden;
+    font-family: 'Comic Sans MS', 'Marker Felt', cursive, sans-serif;
+    user-select: none; touch-action: none;
+    background: #e0f7fa;
+  }
+  #view { position: absolute; inset: 0; display: block; }
+
+  #hud {
+    position: absolute; top: 10px; left: 0; right: 0; z-index: 5;
+    display: flex; justify-content: center; gap: 10px; pointer-events: none;
+  }
+  .chip {
+    background: rgba(255,255,255,0.88); border: 3px solid #ec407a; border-radius: 18px;
+    padding: 6px 18px; font-size: clamp(18px, 4.5vw, 28px); font-weight: bold; color: #880e4f;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.15);
+  }
+  a.home {
+    position: absolute; top: 12px; left: 12px; z-index: 6;
+    background: rgba(255,255,255,0.75); color: #880e4f; padding: 6px 11px;
+    text-decoration: none; border-radius: 12px; font-size: 14px; font-weight: bold; pointer-events: auto;
+  }
+  #hint {
+    position: absolute; bottom: 18px; left: 0; right: 0; z-index: 5; text-align: center;
+    color: #ad1457; font-size: clamp(15px, 3.6vw, 20px); font-weight: bold; pointer-events: none;
+    text-shadow: 0 1px 3px rgba(255,255,255,0.9);
+  }
+  #coinBtn {
+    position: absolute; right: 16px; bottom: 16px; z-index: 6;
+    width: clamp(64px, 14vw, 92px); height: clamp(64px, 14vw, 92px);
+    font-size: clamp(34px, 7vw, 50px); line-height: 1;
+    background: #ffe082; border: 4px solid #ffca28; border-radius: 50%;
+    box-shadow: 0 5px 0 #ff8f00; cursor: pointer; pointer-events: auto;
+    font-family: inherit;
+  }
+  #coinBtn:active { transform: translateY(3px); box-shadow: 0 2px 0 #ff8f00; }
+
+  #overlay {
+    position: absolute; inset: 0; z-index: 10;
+    background: rgba(80,20,60,0.55);
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .card {
+    background: #fff0f5; border: 4px solid #f48fb1; border-radius: 26px;
+    padding: 26px 22px; text-align: center; max-width: 480px;
+    box-shadow: 0 14px 40px rgba(0,0,0,0.4);
+  }
+  .card h2 { font-size: clamp(26px, 7vw, 42px); color: #c2185b; margin-bottom: 12px; }
+  .card p { font-size: clamp(16px, 3.6vw, 22px); color: #5d4037; margin-bottom: 8px; line-height: 1.5; }
+  .card button {
+    margin-top: 16px; font-family: inherit; font-size: clamp(20px, 5vw, 28px); font-weight: bold;
+    background: #ec407a; color: #fff; border: none; border-radius: 20px; padding: 14px 34px;
+    cursor: pointer; box-shadow: 0 6px 0 #ad1457;
+  }
+  .card button:active { transform: translateY(3px); box-shadow: 0 3px 0 #ad1457; }
+  .hidden { display: none !important; }
+  .keyhint { font-size: clamp(13px, 3vw, 17px); color: #c48b9f; margin-top: 6px; }
+</style>
+</head>
+<body>
+<a class="home" href="index.html">⌂ Home</a>
+<canvas id="view"></canvas>
+
+<div id="hud">
+  <div class="chip">🛍️ <span id="servedCount">0</span>/<span id="servedTotal">8</span></div>
+  <div class="chip">🪙 <span id="coinCount">0</span></div>
+</div>
+<div id="hint">👆 Tap the toy your friend wishes for!</div>
+<button id="coinBtn" title="Count my coins!">💰</button>
+
+<div id="overlay">
+  <div class="card" id="card">
+    <h2>🏪 Sabrina's Toy Shop!</h2>
+    <p>You are the shopkeeper! Animal friends walk in and wish for a toy. 🐻🐰🐱</p>
+    <p><b>Tap the toy on the shelf</b> that your friend wishes for — they pay you coins 🪙!</p>
+    <p>Serve <b>8 friends</b> to win! Every wish is read out loud, and 💰 counts your coins.</p>
+    <p class="keyhint">Wrong tap? Friends just giggle — you can never lose! 😊</p>
+    <button id="startBtn">Open the Shop! ▶</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('view');
+  const ctx = canvas.getContext('2d');
+  const overlay = document.getElementById('overlay');
+  const card = document.getElementById('card');
+  const servedEl = document.getElementById('servedCount');
+  const coinsEl = document.getElementById('coinCount');
+  const hintEl = document.getElementById('hint');
+  const coinBtn = document.getElementById('coinBtn');
+
+  let W = 0, H = 0, dpr = 1;
+
+  const GOAL = 8;
+  const TOYS = [
+    { id: 'teddy',   e: '🧸', name: 'teddy',    price: 3 },
+    { id: 'ball',    e: '⚽', name: 'ball',     price: 2 },
+    { id: 'balloon', e: '🎈', name: 'balloon',  price: 1 },
+    { id: 'lolly',   e: '🍭', name: 'lollipop', price: 1 },
+    { id: 'present', e: '🎁', name: 'present',  price: 2 },
+    { id: 'car',     e: '🚗', name: 'car',      price: 2 },
+    { id: 'train',   e: '🚂', name: 'train',    price: 3 },
+    { id: 'rocket',  e: '🚀', name: 'rocket',   price: 3 }
+  ];
+  const FRIENDS = ['🐻', '🐰', '🐱', '🐼', '🐶', '🦆', '🐸', '🐵'];
+
+  let items, cust, timers, fx;
+  let running, won, served, coins, wrongTaps, lastWish;
+
+  // ---------- layout ----------
+  function barY(row)   { return row === 0 ? H * 0.30 : H * 0.52; }
+  function floorY()    { return H - 120; }
+  function standX()    { return W * 0.5; }
+  function feetY()     { return H - 70; }
+  function boxPos()    { return { x: W - 110, y: floorY() + 34 }; }
+
+  function slotPos(i) {
+    const row = Math.floor(i / 4), col = i % 4;
+    return { row, col, x: W * 0.10 + col * (W * 0.80) / 3, y: barY(row) - 34 };
+  }
+  function relayout() { items.forEach((it, i) => Object.assign(it, slotPos(i))); }
+
+  function buildLevel() {
+    items = TOYS.map((t, i) => ({ ...t, wig: 0, ...slotPos(i) }));
+    cust = null;
+    timers = []; fx = [];
+    served = 0; coins = 0; wrongTaps = 0; won = false; lastWish = null;
+    servedEl.textContent = '0';
+    coinsEl.textContent = '0';
+    hintEl.classList.remove('hidden');
+    schedule(0.4, spawnCustomer);
+  }
+
+  function sizeCanvas() {
+    dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function speak(text, pitch = 1.3) {
+    if (!('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US'; u.rate = 1.0; u.pitch = pitch;
+    speechSynthesis.speak(u);
+  }
+
+  function schedule(delay, fn) { timers.push({ t: delay, fn }); }
+
+  // ---------- customers ----------
+  function spawnCustomer() {
+    if (won || served >= GOAL) return;
+    let toy;
+    do { toy = TOYS[Math.floor(Math.random() * TOYS.length)]; } while (lastWish && toy.id === lastWish.id);
+    lastWish = toy;
+    cust = { e: FRIENDS[served], wish: toy, state: 'in', x: -70, bob: Math.random() * 6, leaveT: 0 };
+    popText('🔔', 70, floorY() - 210, '#f57f17');
+  }
+
+  function serve(it) {
+    served++; servedEl.textContent = served;
+    cust.state = 'served'; cust.leaveT = 1.5;
+    speak(`Thank you! Here are ${it.price} coin${it.price > 1 ? 's' : ''}!`, 1.45);
+    const from = { x: it.x, y: it.y };
+    const to = { x: cust.x, y: feetY() - 58 };
+    fx.push({
+      kind: 'fly', ch: it.e, from, to, t: 0, dur: 0.55,
+      onDone() {
+        coins += it.price; coinsEl.textContent = coins;
+        const box = boxPos();
+        popText(`+${it.price} 🪙`, box.x, box.y - 52, '#f57f17');
+        for (let k = 0; k < 3; k++) {
+          schedule(k * 0.12, () => fx.push({
+            kind: 'fly', ch: '🪙', from: { x: to.x, y: to.y }, to: box, t: 0, dur: 0.5
+          }));
+        }
+        sparkle(cust.x, feetY() - 100, '💗');
+        if (served >= GOAL) schedule(1.8, winGame);
+      }
+    });
+  }
+
+  // ---------- loop ----------
+  let lastT = 0;
+  function tick(t) {
+    if (!running) return;
+    const dt = Math.min(0.04, (t - lastT) / 1000 || 0);
+    lastT = t;
+    update(dt);
+    render();
+    requestAnimationFrame(tick);
+  }
+
+  function update(dt) {
+    for (let i = timers.length - 1; i >= 0; i--) {
+      timers[i].t -= dt;
+      if (timers[i].t <= 0) { const fn = timers[i].fn; timers.splice(i, 1); fn(); }
+    }
+    for (const it of items) it.wig = Math.max(0, it.wig - dt);
+
+    if (cust) {
+      if (cust.state === 'in') {
+        cust.x += 200 * dt;
+        if (cust.x >= standX()) {
+          cust.x = standX(); cust.state = 'wait';
+          speak(`I want the ${cust.wish.name}, please!`, 1.4);
+        }
+      } else if (cust.state === 'served') {
+        cust.leaveT -= dt;
+        if (cust.leaveT <= 0) cust.state = 'out';
+      } else if (cust.state === 'out') {
+        cust.x += 230 * dt;
+        if (cust.x > W + 90) {
+          cust = null;
+          if (!won && served < GOAL) schedule(0.6, spawnCustomer);
+        }
+      }
+    }
+
+    for (let i = fx.length - 1; i >= 0; i--) {
+      const p = fx[i];
+      if (p.kind === 'fly') {
+        p.t += dt;
+        if (p.t >= p.dur) { fx.splice(i, 1); if (p.onDone) p.onDone(); }
+      } else {
+        p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt;
+        if (p.t >= p.life) fx.splice(i, 1);
+      }
+    }
+  }
+
+  function sparkle(x, y, ch) {
+    for (let i = 0; i < 7; i++) fx.push({ kind: 'spark', x, y, ch, vx: (Math.random() - 0.5) * 130, vy: -70 - Math.random() * 90, life: 0.8, t: 0 });
+  }
+  function popText(txt, x, y, color) { fx.push({ kind: 'txt', x, y, txt, color, vx: 0, vy: -60, life: 0.9, t: 0 }); }
+
+  // ---------- render ----------
+  function rr(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function render() {
+    const now = performance.now();
+
+    // shop wall
+    const wall = ctx.createLinearGradient(0, 0, 0, floorY());
+    wall.addColorStop(0, '#e0f7fa'); wall.addColorStop(1, '#b2ebf2');
+    ctx.fillStyle = wall; ctx.fillRect(0, 0, W, floorY());
+
+    // striped awning with scallops
+    for (let x = 0, i = 0; x < W; x += 64, i++) {
+      ctx.fillStyle = i % 2 ? '#ffffff' : '#ef5350';
+      ctx.fillRect(x, 0, Math.min(64, W - x), 44);
+    }
+    for (let i = 0; ; i++) {
+      const cx = i * 32 + 16;
+      if (cx - 16 > W) break;
+      const stripe = Math.floor((cx - 16) / 64);
+      ctx.fillStyle = stripe % 2 ? '#ffffff' : '#ef5350';
+      ctx.beginPath(); ctx.arc(cx, 44, 15, 0, Math.PI); ctx.fill();
+    }
+
+    // the shop door
+    const doorX = 24, doorW = 92, doorTop = floorY() - 190;
+    ctx.fillStyle = '#8d6e63'; ctx.fillRect(doorX, doorTop, doorW, 190);
+    ctx.fillStyle = '#a1887f'; ctx.fillRect(doorX + 10, doorTop + 12, doorW - 20, 166);
+    ctx.fillStyle = '#ffd54f';
+    ctx.beginPath(); ctx.arc(doorX + doorW - 16, doorTop + 100, 6, 0, Math.PI * 2); ctx.fill();
+    ctx.font = '22px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#6d4c41';
+    ctx.fillText('🔔', doorX + doorW / 2, doorTop - 16);
+    ctx.fillStyle = '#f8bbd0'; rr(doorX - 4, floorY() - 6, doorW + 8, 22, 6); ctx.fill();
+
+    // shelves
+    for (let row = 0; row < 2; row++) {
+      const by = barY(row);
+      ctx.fillStyle = '#8d6e63'; ctx.fillRect(28, by, W - 56, 12);
+      ctx.fillStyle = '#a1887f'; ctx.fillRect(28, by + 12, W - 56, 5);
+    }
+
+    // toys on the shelves (they wiggle when tapped by mistake)
+    for (const it of items) {
+      ctx.save();
+      ctx.translate(it.x, it.y);
+      if (it.wig > 0) ctx.rotate(Math.sin(it.wig * 25) * 0.25);
+      ctx.font = '42px serif';
+      ctx.fillStyle = '#5d4037';
+      ctx.fillText(it.e, 0, 0);
+      ctx.restore();
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      rr(it.x - 24, it.y + 26, 48, 20, 9); ctx.fill();
+      ctx.font = 'bold 14px "Comic Sans MS", serif'; ctx.fillStyle = '#6d4c41';
+      ctx.fillText(`🪙${it.price}`, it.x, it.y + 37);
+    }
+
+    // wooden floor
+    ctx.fillStyle = '#d7a86e'; ctx.fillRect(0, floorY(), W, H - floorY());
+    ctx.strokeStyle = 'rgba(0,0,0,0.10)'; ctx.lineWidth = 3;
+    for (let y = floorY() + 30; y < H; y += 30) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+    }
+
+    // cash box with coins piling up
+    const box = boxPos();
+    ctx.fillStyle = '#8d6e63'; rr(box.x - 45, box.y - 24, 90, 46, 10); ctx.fill();
+    ctx.fillStyle = '#6d4c41'; rr(box.x - 45, box.y - 24, 90, 14, 8); ctx.fill();
+    ctx.fillStyle = '#3e2723'; rr(box.x - 22, box.y - 21, 44, 7, 3); ctx.fill();
+    if (coins > 0) {
+      ctx.font = '22px serif';
+      ctx.fillStyle = '#f9a825';
+      ctx.fillText('🪙'.repeat(Math.min(coins, 8)), box.x, box.y - 40);
+    }
+
+    // the customer
+    if (cust) {
+      const walking = cust.state === 'in' || cust.state === 'out';
+      const bob = walking ? -Math.abs(Math.sin(now / 140)) * 10 : Math.sin(now / 260 + cust.bob) * 4;
+      const fy = feetY();
+      ctx.fillStyle = 'rgba(0,0,0,0.12)';
+      ctx.beginPath(); ctx.ellipse(cust.x, fy - 4, 34, 8, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#5d4037';
+      ctx.font = '56px serif';
+      ctx.fillText(cust.e, cust.x, fy - 40 + bob);
+      if (cust.state === 'out') { ctx.font = '30px serif'; ctx.fillText(cust.wish.e, cust.x, fy - 98 + bob); }
+      if (cust.state === 'served') { ctx.fillStyle = '#e91e63'; ctx.font = '26px serif'; ctx.fillText('💗', cust.x + 42, fy - 96); }
+      if (cust.state === 'wait') {
+        const by = fy - 138;
+        ctx.fillStyle = 'rgba(255,255,255,0.95)'; ctx.strokeStyle = '#ffb74d'; ctx.lineWidth = 4;
+        rr(cust.x - 84, by - 40, 168, 76, 14); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = 'rgba(255,255,255,0.95)';
+        ctx.beginPath();
+        ctx.moveTo(cust.x - 12, by + 34); ctx.lineTo(cust.x + 14, by + 34); ctx.lineTo(cust.x + 2, by + 56);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#5d4037';
+        ctx.font = '34px serif';
+        ctx.fillText(cust.wish.e, cust.x, by - 14);
+        ctx.font = 'bold 20px "Comic Sans MS", serif'; ctx.fillStyle = '#5d4037';
+        ctx.fillText(`${cust.wish.name}!`, cust.x, by + 20);
+      }
+    }
+
+    // fx
+    for (const p of fx) {
+      ctx.globalAlpha = p.kind === 'fly' ? 1 : Math.max(0, 1 - p.t / p.life);
+      if (p.kind === 'fly') {
+        const u = Math.min(1, p.t / p.dur);
+        const x = p.from.x + (p.to.x - p.from.x) * u;
+        const y = p.from.y + (p.to.y - p.from.y) * u - Math.sin(u * Math.PI) * 70;
+        ctx.font = '34px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = p.ch === '🪙' ? '#f9a825' : '#5d4037';
+        ctx.fillText(p.ch, x, y);
+      } else if (p.txt) {
+        ctx.font = 'bold 26px "Comic Sans MS", serif'; ctx.fillStyle = p.color || '#f57f17';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(p.txt, p.x, p.y);
+      } else {
+        ctx.font = '24px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#f57f17';
+        ctx.fillText(p.ch, p.x, p.y);
+      }
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // ---------- win ----------
+  function winGame() {
+    if (won) return;
+    won = true;
+    running = false;
+    hintEl.classList.add('hidden');
+    const msg = wrongTaps === 0 ? 'PERFECT! You knew every single toy! 🌟'
+              : wrongTaps <= 2 ? 'Wonderful shopkeeping, Sabrina! 💪'
+              : 'Your shop is full of happy friends! 🎉';
+    card.innerHTML = `
+      <h2>🏪 Shop closed! 🎉</h2>
+      <p>You served all <strong>${GOAL}</strong> friends and earned <strong>${coins}</strong> coins 🪙!</p>
+      <p>${msg}</p>
+      <button id="againBtn">Open shop again ▶</button>`;
+    overlay.classList.remove('hidden');
+    document.getElementById('againBtn').addEventListener('click', start);
+    speak(`Shop closed! You served eight friends and earned ${coins} coins. You are a super shopkeeper!`, 1.4);
+    for (let i = 0; i < 26; i++) {
+      sparkle(standX() + (Math.random() - 0.5) * 360, feetY() - 120 + (Math.random() - 0.5) * 160,
+        ['✨', '⭐', '🎉', '🎈', '🪙'][Math.floor(Math.random() * 5)]);
+    }
+  }
+
+  function start() {
+    overlay.classList.add('hidden');
+    sizeCanvas();
+    buildLevel();
+    running = true;
+    lastT = performance.now();
+    requestAnimationFrame(tick);
+    speak('Welcome to Sabrina\'s toy shop!', 1.4);
+  }
+
+  // ---------- input: tap the toys ----------
+  canvas.addEventListener('pointerdown', e => {
+    if (!running || !cust || cust.state !== 'wait') return;
+    for (const it of items) {
+      if (Math.hypot(e.clientX - it.x, e.clientY - it.y) < 50) {
+        if (it.id === cust.wish.id) serve(it);
+        else {
+          it.wig = 0.6; wrongTaps++;
+          popText('Oopsie!', it.x, it.y - 46, '#e53935');
+          speak('Hee hee, that\'s not it!', 1.5);
+        }
+        break;
+      }
+    }
+    e.preventDefault();
+  });
+
+  coinBtn.addEventListener('pointerdown', e => e.stopPropagation());
+  coinBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    speak(`You have ${coins} coin${coins === 1 ? '' : 's'} in your cash box!`, 1.4);
+    const box = boxPos();
+    popText(`${coins} 🪙`, box.x, box.y - 56, '#f57f17');
+    sparkle(box.x, box.y - 40, '🪙');
+  });
+
+  window.addEventListener('resize', () => { sizeCanvas(); if (items) relayout(); });
+
+  document.getElementById('startBtn').addEventListener('click', start);
+  sizeCanvas();
+})();
+</script>
+</body>
+</html>
