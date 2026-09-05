@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Sabrina's Piñata Party! 🎉</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    height: 100%; overflow: hidden;
+    font-family: 'Comic Sans MS', 'Marker Felt', cursive, sans-serif;
+    user-select: none; touch-action: none;
+    background: #f3e5f5;
+  }
+  #view { position: absolute; inset: 0; display: block; }
+
+  #hud {
+    position: absolute; top: 10px; left: 0; right: 0; z-index: 5;
+    display: flex; justify-content: center; gap: 10px; pointer-events: none;
+  }
+  .chip {
+    background: rgba(255,255,255,0.88); border: 3px solid #ab47bc; border-radius: 18px;
+    padding: 6px 18px; font-size: clamp(18px, 4.5vw, 28px); font-weight: bold; color: #6a1b9a;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.15);
+  }
+  a.home {
+    position: absolute; top: 12px; left: 12px; z-index: 6;
+    background: rgba(255,255,255,0.75); color: #6a1b9a; padding: 6px 11px;
+    text-decoration: none; border-radius: 12px; font-size: 14px; font-weight: bold; pointer-events: auto;
+  }
+  #hint {
+    position: absolute; bottom: 18px; left: 0; right: 0; z-index: 5; text-align: center;
+    color: #6a1b9a; font-size: clamp(15px, 3.6vw, 20px); font-weight: bold; pointer-events: none;
+    text-shadow: 0 1px 3px rgba(255,255,255,0.9);
+  }
+  #partyBtn {
+    position: absolute; right: 16px; bottom: 16px; z-index: 6;
+    width: clamp(64px, 14vw, 92px); height: clamp(64px, 14vw, 92px);
+    font-size: clamp(34px, 7vw, 50px); line-height: 1;
+    background: #ffe082; border: 4px solid #ffca28; border-radius: 50%;
+    box-shadow: 0 5px 0 #ff8f00; cursor: pointer; pointer-events: auto;
+    font-family: inherit;
+  }
+  #partyBtn:active { transform: translateY(3px); box-shadow: 0 2px 0 #ff8f00; }
+
+  #overlay {
+    position: absolute; inset: 0; z-index: 10;
+    background: rgba(60,20,70,0.55);
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .card {
+    background: #faf5ff; border: 4px solid #ce93d8; border-radius: 26px;
+    padding: 26px 22px; text-align: center; max-width: 480px;
+    box-shadow: 0 14px 40px rgba(0,0,0,0.4);
+  }
+  .card h2 { font-size: clamp(26px, 7vw, 42px); color: #7b1fa2; margin-bottom: 12px; }
+  .card p { font-size: clamp(16px, 3.6vw, 22px); color: #4a148c; margin-bottom: 8px; line-height: 1.5; }
+  .card button {
+    margin-top: 16px; font-family: inherit; font-size: clamp(20px, 5vw, 28px); font-weight: bold;
+    background: #ab47bc; color: #fff; border: none; border-radius: 20px; padding: 14px 34px;
+    cursor: pointer; box-shadow: 0 6px 0 #6a1b9a;
+  }
+  .card button:active { transform: translateY(3px); box-shadow: 0 3px 0 #6a1b9a; }
+  .hidden { display: none !important; }
+  .keyhint { font-size: clamp(13px, 3vw, 17px); color: #ad8bb5; margin-top: 6px; }
+</style>
+</head>
+<body>
+<a class="home" href="index.html">⌂ Home</a>
+<canvas id="view"></canvas>
+
+<div id="hud">
+  <div class="chip">🪅 <span id="whackCount">0</span>/<span id="whackTotal">8</span></div>
+  <div class="chip">🍬 <span id="candyCount">0</span>/<span id="candyTotal">20</span></div>
+</div>
+<div id="hint">👆 Tap the piñata!</div>
+<button id="partyBtn" title="Celebrate!">🎉</button>
+
+<div id="overlay">
+  <div class="card" id="card">
+    <h2>🎉 Sabrina's Piñata Party!</h2>
+    <p>Bear, Bunny, Kitty and Panda are having a party — with a big colorful piñata! 🪅</p>
+    <p><b>Tap the piñata</b> again and again to crack it — count your whacks out loud!</p>
+    <p>When it bursts, <b>drag the basket</b> 🧺 to catch the falling candy. Catch <b>20 candies</b> to fill the bowl!</p>
+    <p class="keyhint">You can never lose — every whack just makes it swing! 😊</p>
+    <button id="startBtn">Start the Party! ▶</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('view');
+  const ctx = canvas.getContext('2d');
+  const overlay = document.getElementById('overlay');
+  const card = document.getElementById('card');
+  const whackEl = document.getElementById('whackCount');
+  const candyEl = document.getElementById('candyCount');
+  const hintEl = document.getElementById('hint');
+  const partyBtn = document.getElementById('partyBtn');
+
+  let W = 0, H = 0, dpr = 1;
+
+  const GOAL_WHACKS = 8;
+  const GOAL_CANDY = 20;
+  const NUMWORDS = ['One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight'];
+  const CANDIES = ['🍬', '🍭', '🍫'];
+  const FRIENDS = ['🐻', '🐰', '🐱', '🐼'];
+  const CRACKS = [[10,-20,18,-6],[-14,-16,-8,-2],[4,14,16,20],[-18,8,-8,16],[12,2,22,10],[-4,-24,2,-12],[16,-14,24,-2],[-12,20,-20,28]];
+  const FLAG_COLORS = ['#ef5350', '#ffca28', '#66bb6a', '#42a5f5', '#ab47bc'];
+
+  let phase, whacks, candy, missed, won, running;
+  let pinata, candies, basket, targetX, balloons, friends, fx, timers;
+  let spawnT, burstT, drizzleT;
+  const input = { drag: false, left: false, right: false };
+
+  // ---------- layout ----------
+  function pivot()      { return { x: W / 2, y: 48 }; }
+  function stringLen()  { return Math.min(190, H * 0.24); }
+  function pinataPos()  { const p = pivot(), L = stringLen(); return { x: p.x + Math.sin(pinata.ang) * L, y: p.y + Math.cos(pinata.ang) * L }; }
+  function basketY()    { return H - 58; }
+  function floorY()     { return H - 96; }
+
+  function buildLevel() {
+    phase = 'pinata';
+    whacks = 0; candy = 0; missed = 0; won = false;
+    pinata = { ang: 0.08, vel: 0 };
+    candies = []; fx = []; timers = [];
+    basket = { x: W / 2 }; targetX = W / 2;
+    input.drag = false; input.left = false; input.right = false;
+    spawnT = 0.4; burstT = 0; drizzleT = 0;
+    friends = [];
+    const spots = [0.26, 0.38, 0.62, 0.74];
+    for (let i = 0; i < 4; i++) friends.push({ e: FRIENDS[i], fx: spots[i], ph: i * 1.7 });
+    balloons = [];
+    for (let i = 0; i < 6; i++) balloons.push({ x: Math.random() * W, y: Math.random() * H, s: 0.6 + Math.random() * 0.8, ph: Math.random() * 6 });
+    whackEl.textContent = '0';
+    candyEl.textContent = '0';
+    hintEl.textContent = '👆 Tap the piñata!';
+    hintEl.classList.remove('hidden');
+  }
+
+  function sizeCanvas() {
+    dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function speak(text, pitch = 1.3) {
+    if (!('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US'; u.rate = 1.0; u.pitch = pitch;
+    speechSynthesis.speak(u);
+  }
+
+  function schedule(delay, fn) { timers.push({ t: delay, fn }); }
+
+  // ---------- the piñata ----------
+  function whack(cx) {
+    whacks++; whackEl.textContent = whacks;
+    pinata.vel += (cx < pinataPos().x ? 1.8 : -1.8);
+    const p = pinataPos();
+    sparkle(cx, p.y, '💥');
+    popText(NUMWORDS[whacks - 1] + (whacks === 1 ? ' whack!' : ' whacks!'), p.x, p.y - 80, '#e91e63');
+    speak(NUMWORDS[whacks - 1] + (whacks === 1 ? ' whack!' : ' whacks!'), 1.45);
+    if (whacks >= GOAL_WHACKS) burst();
+  }
+
+  function burst() {
+    phase = 'bursting'; burstT = 1.4;
+    const p = pinataPos();
+    speak('It burst! Hooray! Catch the candy!', 1.5);
+    popText('HOORAY!', p.x, p.y - 90, '#ff7043');
+    for (let i = 0; i < 40; i++) {
+      fx.push({ kind: 'spark', x: p.x + (Math.random() - 0.5) * 120, y: p.y + (Math.random() - 0.5) * 100,
+        ch: ['✨', '⭐', '🎉', '🎈', '🍬', '🍭', '🍫'][Math.floor(Math.random() * 7)],
+        vx: (Math.random() - 0.5) * 320, vy: -150 - Math.random() * 160, life: 1.2, t: 0 });
+    }
+  }
+
+  // ---------- loop ----------
+  let lastT = 0;
+  function tick(t) {
+    if (!running) return;
+    const dt = Math.min(0.04, (t - lastT) / 1000 || 0);
+    lastT = t;
+    update(dt);
+    render();
+    requestAnimationFrame(tick);
+  }
+
+  function update(dt) {
+    for (let i = timers.length - 1; i >= 0; i--) {
+      timers[i].t -= dt;
+      if (timers[i].t <= 0) { const fn = timers[i].fn; timers.splice(i, 1); fn(); }
+    }
+
+    // piñata swings on its string
+    pinata.vel += (-Math.sin(pinata.ang) * 4.0 - pinata.vel * 0.75) * dt;
+    pinata.ang += pinata.vel * dt;
+
+    if (!won && phase === 'bursting') {
+      burstT -= dt;
+      if (burstT <= 0) {
+        phase = 'catch';
+        hintEl.textContent = '👆 Drag the basket to catch the candy!';
+      }
+    }
+
+    // candy rain
+    if (!won && phase === 'catch') {
+      spawnT -= dt;
+      if (spawnT <= 0) {
+        spawnT = 0.75 + Math.random() * 0.4;
+        candies.push({ x: 90 + Math.random() * (W - 180), y: -36,
+          vy: 105 + Math.random() * 60, sway: 16 + Math.random() * 22, ph: Math.random() * 6,
+          e: CANDIES[Math.floor(Math.random() * CANDIES.length)] });
+      }
+    }
+    for (let i = candies.length - 1; i >= 0; i--) {
+      const c = candies[i];
+      c.y += c.vy * dt;
+      c.x += Math.sin(performance.now() / 600 + c.ph) * c.sway * dt;
+      if (!won && phase === 'catch' && Math.abs(c.x - basket.x) < 58 && Math.abs(c.y - (basketY() - 14)) < 52) {
+        candies.splice(i, 1);
+        candy++; candyEl.textContent = candy;
+        sparkle(c.x, c.y, '✨');
+        popText('+1', c.x, c.y, '#7b1fa2');
+        if (candy % 5 === 0) speak(candy + ' candies! Great catching!', 1.45);
+        if (!won && candy >= GOAL_CANDY) { won = true; schedule(0.9, winGame); }
+        continue;
+      }
+      if (c.y > H + 46) { candies.splice(i, 1); missed++; }
+    }
+
+    // basket follows finger or arrow keys
+    if (!won && phase === 'catch') {
+      if (input.drag) {
+        basket.x += (targetX - basket.x) * Math.min(1, 10 * dt);
+      } else {
+        targetX += ((input.right ? 1 : 0) - (input.left ? 1 : 0)) * 470 * dt;
+        basket.x += (targetX - basket.x) * Math.min(1, 10 * dt);
+      }
+      basket.x = Math.max(60, Math.min(W - 60, basket.x));
+      targetX = Math.max(60, Math.min(W - 60, targetX));
+    }
+
+    // festive confetti drizzle once the piñata bursts
+    if (phase !== 'pinata') {
+      drizzleT -= dt;
+      if (drizzleT <= 0) {
+        drizzleT = 0.5;
+        for (let k = 0; k < 2; k++) {
+          fx.push({ kind: 'drift', x: Math.random() * W, y: -24,
+            ch: ['🎊', '✨', '🌟', '🎉'][Math.floor(Math.random() * 4)],
+            vx: (Math.random() - 0.5) * 60, vy: 90 + Math.random() * 60, life: 6, t: 0 });
+        }
+      }
+    }
+
+    // balloons float up
+    for (const b of balloons) {
+      b.y -= (14 + b.s * 10) * dt;
+      b.x += Math.sin(performance.now() / 900 + b.ph) * 12 * dt;
+      if (b.y < -50) { b.y = H + 50; b.x = Math.random() * W; }
+    }
+
+    for (let i = fx.length - 1; i >= 0; i--) {
+      const p = fx[i];
+      p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt;
+      if (p.t >= p.life) fx.splice(i, 1);
+    }
+  }
+
+  function sparkle(x, y, ch) {
+    for (let i = 0; i < 7; i++) fx.push({ kind: 'spark', x, y, ch, vx: (Math.random() - 0.5) * 130, vy: -70 - Math.random() * 90, life: 0.8, t: 0 });
+  }
+  function popText(txt, x, y, color) { fx.push({ kind: 'txt', x, y, txt, color, vx: 0, vy: -60, life: 0.9, t: 0 }); }
+
+  // ---------- render ----------
+  function emoji(ch, x, y, size, color) {
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = size + 'px serif';
+    ctx.fillStyle = color || '#5d4037';
+    ctx.fillText(ch, x, y);
+  }
+
+  function render() {
+    const now = performance.now();
+
+    // party wall
+    const wall = ctx.createLinearGradient(0, 0, 0, floorY());
+    wall.addColorStop(0, '#f3e5f5'); wall.addColorStop(1, '#e1bee7');
+    ctx.fillStyle = wall; ctx.fillRect(0, 0, W, floorY());
+
+    // bunting flags
+    for (let i = 0; ; i++) {
+      const x = i * 52;
+      if (x > W) break;
+      ctx.fillStyle = FLAG_COLORS[i % FLAG_COLORS.length];
+      ctx.beginPath();
+      ctx.moveTo(x, 0); ctx.lineTo(x + 52, 0); ctx.lineTo(x + 26, 30 + Math.sin(i * 1.3) * 4);
+      ctx.closePath(); ctx.fill();
+    }
+
+    // balloons
+    for (const b of balloons) {
+      ctx.globalAlpha = 0.75;
+      emoji('🎈', b.x, b.y, Math.round(40 * b.s), '#e91e63');
+      ctx.globalAlpha = 1;
+    }
+
+    // cheering friends along the back wall
+    const cheer = phase !== 'pinata';
+    for (const f of friends) {
+      const bob = cheer ? -Math.abs(Math.sin(now / 130 + f.ph)) * 12 : Math.sin(now / 300 + f.ph) * 4;
+      emoji(f.e, f.fx * W, floorY() - 44 + bob, 44);
+    }
+
+    // polka-dot party carpet
+    ctx.fillStyle = '#f8bbd0'; ctx.fillRect(0, floorY(), W, H - floorY());
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    for (let row = 0; row < 3; row++) {
+      for (let cx = (row % 2 ? 30 : 60); cx < W; cx += 90) {
+        ctx.beginPath(); ctx.arc(cx, floorY() + 24 + row * 28, 7, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+
+    // candy bowl on its table
+    const tx = W - 105, ty = floorY() + 40;
+    ctx.fillStyle = '#8d6e63'; rr(tx - 62, ty - 6, 124, 14, 6); ctx.fill();
+    ctx.fillStyle = '#6d4c41'; ctx.fillRect(tx - 52, ty + 8, 10, 34); ctx.fillRect(tx + 42, ty + 8, 10, 34);
+    ctx.fillStyle = '#b3e5fc';
+    ctx.beginPath(); ctx.ellipse(tx, ty - 16, 44, 18, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#81d4fa'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.ellipse(tx, ty - 16, 44, 18, 0, 0, Math.PI * 2); ctx.stroke();
+    if (candy > 0) emoji('🍬'.repeat(Math.min(candy, 9)), tx, ty - 40, 18, '#e91e63');
+
+    // the swinging piñata (until it bursts!)
+    if (phase !== 'catch') {
+      const p = pivot(), L = stringLen();
+      const bx = p.x + Math.sin(pinata.ang) * L;
+      const by = p.y + Math.cos(pinata.ang) * L;
+      ctx.strokeStyle = '#8d6e63'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(bx, by - 30); ctx.stroke();
+      ctx.save();
+      ctx.translate(bx, by);
+      ctx.rotate(pinata.ang * 0.5);
+      const R = 46;
+      for (let i = 0; i < 7; i++) {
+        const a = -Math.PI / 2 + i * (2 * Math.PI / 7);
+        ctx.fillStyle = FLAG_COLORS[i % 5];
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(a - 0.28) * R, Math.sin(a - 0.28) * R);
+        ctx.lineTo(Math.cos(a + 0.28) * R, Math.sin(a + 0.28) * R);
+        ctx.closePath(); ctx.fill();
+      }
+      ctx.fillStyle = '#fff59d';
+      ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI * 2); ctx.fill();
+      // cracks appear with every whack
+      ctx.strokeStyle = '#5d4037'; ctx.lineWidth = 2.5;
+      for (let k = 0; k < whacks && k < CRACKS.length; k++) {
+        const [x1, y1, x2, y2] = CRACKS[k];
+        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+      }
+      // a happy little face
+      ctx.fillStyle = '#3e2723';
+      ctx.beginPath(); ctx.arc(-8, -4, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(8, -4, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(0, 2, 8, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke();
+      ctx.restore();
+    }
+
+    // falling candies
+    for (const c of candies) {
+      ctx.save();
+      ctx.translate(c.x, c.y);
+      ctx.rotate(Math.sin(now / 600 + c.ph) * 0.3);
+      emoji(c.e, 0, 0, 34);
+      ctx.restore();
+    }
+
+    // the candy basket
+    if (phase === 'catch' || won) {
+      ctx.fillStyle = 'rgba(0,0,0,0.12)';
+      ctx.beginPath(); ctx.ellipse(basket.x, H - 16, 40, 8, 0, 0, Math.PI * 2); ctx.fill();
+      emoji('🧺', basket.x, basketY(), 64);
+    }
+
+    // fx
+    for (const p of fx) {
+      const a = Math.max(0, 1 - p.t / p.life);
+      ctx.globalAlpha = p.kind === 'drift' ? 0.8 * a : a;
+      if (p.txt) {
+        ctx.font = 'bold 26px "Comic Sans MS", serif'; ctx.fillStyle = p.color || '#7b1fa2';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(p.txt, p.x, p.y);
+      } else {
+        emoji(p.ch, p.x, p.y, p.kind === 'drift' ? 20 : 26);
+      }
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  function rr(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  // ---------- win ----------
+  function winGame() {
+    hintEl.classList.add('hidden');
+    const msg = missed === 0 ? 'PERFECT — you caught every single candy! 🌟'
+              : missed <= 5 ? 'Super party catching, Sabrina! 💪'
+              : 'What a wonderful party! 🎈';
+    card.innerHTML = `
+      <h2>🎈 Best party ever! 🎉</h2>
+      <p>You cracked the piñata with <strong>${whacks}</strong> whacks and caught <strong>${candy}</strong> candies!</p>
+      <p>${msg}</p>
+      <button id="againBtn">Party again ▶</button>`;
+    overlay.classList.remove('hidden');
+    document.getElementById('againBtn').addEventListener('click', start);
+    speak('Best party ever! You caught twenty candies! Hooray!', 1.45);
+    sparkle(basket.x, basketY() - 60, '🎉');
+    for (let i = 0; i < 26; i++) {
+      fx.push({ kind: 'spark', x: W / 2 + (Math.random() - 0.5) * 360, y: H / 2 + (Math.random() - 0.5) * 200,
+        ch: ['✨', '⭐', '🎉', '🎈', '🍬'][Math.floor(Math.random() * 5)],
+        vx: (Math.random() - 0.5) * 260, vy: -120 - Math.random() * 140, life: 1.2, t: 0 });
+    }
+  }
+
+  function start() {
+    overlay.classList.add('hidden');
+    sizeCanvas();
+    buildLevel();
+    running = true;
+    lastT = performance.now();
+    requestAnimationFrame(tick);
+    speak('Party time! Tap the piñata!', 1.4);
+  }
+
+  // ---------- input ----------
+  canvas.addEventListener('pointerdown', e => {
+    if (won) return;
+    if (phase === 'pinata') {
+      const p = pinataPos();
+      if (Math.hypot(e.clientX - p.x, e.clientY - p.y) < 210) whack(e.clientX);
+    } else if (phase === 'catch') {
+      input.drag = true; targetX = e.clientX;
+    }
+    e.preventDefault();
+  });
+  canvas.addEventListener('pointermove', e => { if (input.drag && phase === 'catch') targetX = e.clientX; });
+  window.addEventListener('pointerup', () => { input.drag = false; });
+  canvas.addEventListener('pointercancel', () => { input.drag = false; });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft'  || e.key === 'a') { input.left = true;  e.preventDefault(); }
+    if (e.key === 'ArrowRight' || e.key === 'd') { input.right = true; e.preventDefault(); }
+  });
+  document.addEventListener('keyup', e => {
+    if (e.key === 'ArrowLeft'  || e.key === 'a') input.left = false;
+    if (e.key === 'ArrowRight' || e.key === 'd') input.right = false;
+  });
+
+  partyBtn.addEventListener('pointerdown', e => e.stopPropagation());
+  partyBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    speak('Party! Party! Party!', 1.5);
+    const p = phase === 'pinata' ? pinataPos() : { x: W / 2, y: H / 2 };
+    popText('Party! 🎉', p.x, p.y - 70, '#ff7043');
+    for (let i = 0; i < 12; i++) {
+      fx.push({ kind: 'spark', x: p.x + (Math.random() - 0.5) * 200, y: p.y,
+        ch: ['🎊', '✨', '🎉', '⭐'][Math.floor(Math.random() * 4)],
+        vx: (Math.random() - 0.5) * 260, vy: -110 - Math.random() * 120, life: 1.1, t: 0 });
+    }
+  });
+
+  window.addEventListener('resize', () => { sizeCanvas(); });
+
+  document.getElementById('startBtn').addEventListener('click', start);
+  sizeCanvas();
+})();
+</script>
+</body>
+</html>
